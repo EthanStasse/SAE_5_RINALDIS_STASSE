@@ -1,0 +1,15 @@
+# Config de TEST : passerelle + faux_api.py sur le même Pi, sans jeton réel.
+# Lancer : python3 passerelle.py --config outils/config.test-local.toml -v
+
+[api]
+url = "http://127.0.0.1:8000/api/v1/mesures"
+autoriser_http_pour_tests = true
+
+[passerelle]
+intervalle_mesure_s = 10           # 10 s pour voir vite les mesures
+tampon = "/tmp/tampon-test.sqlite3"
+
+[[boitiers]]
+nom = "serre-test"
+port = "/dev/ttyACM0"              # adapter si besoin (ls /dev/ttyACM* /dev/ttyUSB*)
+jeton = "test123"

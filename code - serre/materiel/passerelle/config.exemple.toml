@@ -1,0 +1,32 @@
+# Configuration de la passerelle — MODÈLE versionné dans Git.
+# La vraie config (avec les jetons) va dans /etc/passerelle-serre/config.toml
+# et ne doit JAMAIS être commitée (voir .gitignore).
+
+[api]
+# Recette : https://<serveur-de-recette>/api/v1/mesures
+url = "https://recette.exemple.fr/api/v1/mesures"
+# true (par défaut), false (jamais en recette !) ou chemin vers un certificat CA
+verifier_tls = true
+delai_s = 10
+# Uniquement pour tester avec faux_api.py ou ton PC en local, sans HTTPS :
+# autoriser_http_pour_tests = true
+
+[passerelle]
+intervalle_mesure_s = 300          # EF-C-03 : 5 minutes par défaut
+tampon = "/var/lib/passerelle-serre/tampon.sqlite3"
+tampon_max = 20000                 # ~35 jours de coupure pour 2 boîtiers
+
+# Un bloc [[boitiers]] par Arduino.
+# port : utiliser /dev/serial/by-id/... (stable) plutôt que /dev/ttyACM0
+# (le numéro peut changer au rebranchement). Lister avec : ls -l /dev/serial/by-id/
+# jeton : celui affiché par l'application à la création du boîtier (EF-C-02).
+
+[[boitiers]]
+nom = "serre-1"
+port = "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0043_REMPLACER-if00"
+jeton = "REMPLACER_PAR_LE_JETON_DU_BOITIER"
+
+# [[boitiers]]
+# nom = "serre-2"
+# port = "/dev/serial/by-id/usb-Arduino_LLC_Arduino_Leonardo-if00"
+# jeton = "REMPLACER_PAR_LE_JETON_DU_BOITIER_2"

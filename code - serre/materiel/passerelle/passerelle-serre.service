@@ -1,0 +1,28 @@
+[Unit]
+Description=Passerelle capteurs de serre (Arduino USB -> API Laravel)
+# Démarre quand le réseau est prêt, mais la passerelle fonctionne aussi
+# sans réseau : les mesures sont gardées dans le tampon.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=passerelle
+Group=passerelle
+# dialout : droit d'accès aux ports série /dev/ttyACM* et /dev/ttyUSB*
+SupplementaryGroups=dialout
+ExecStart=/usr/bin/python3 /opt/passerelle-serre/passerelle.py --config /etc/passerelle-serre/config.toml
+# Redémarrage automatique en cas de plantage
+Restart=always
+RestartSec=10
+# Crée /var/lib/passerelle-serre avec le bon propriétaire (tampon SQLite)
+StateDirectory=passerelle-serre
+
+# Durcissement : le service ne peut écrire que dans son StateDirectory
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

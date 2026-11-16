@@ -1,0 +1,6 @@
+# La vraie configuration contient les jetons des boîtiers : jamais dans Git.
+config.toml
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+__pycache__/
