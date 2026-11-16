@@ -12,7 +12,12 @@
     @auth
         <header class="border-b border-stone-200 bg-white">
             <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <a href="{{ route('accueil') }}" class="font-semibold text-green-800">{{ config('app.name') }}</a>
+                <nav class="flex items-center gap-5" aria-label="Menu principal">
+                    <a href="{{ route('accueil') }}" class="font-semibold text-green-800">{{ config('app.name') }}</a>
+                    @can('voir-serres')
+                        <a href="{{ route('serres.index') }}" @class(['text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('serres.*')])>Serres</a>
+                    @endcan
+                </nav>
 
                 <div class="flex flex-wrap items-center gap-4 text-sm">
                     @if ($structureCourante)

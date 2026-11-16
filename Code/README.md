@@ -36,7 +36,7 @@ git clone <dépôt> && cd <dépôt>
 | Commande artisan | `docker compose exec app php artisan <commande>` |
 | Tests | `docker compose exec app ./vendor/bin/pest` |
 | Corriger le style | `docker compose exec app ./vendor/bin/pint` |
-| Analyse statique | `docker compose exec app ./vendor/bin/phpstan analyse` |
+| Analyse statique | `docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G` |
 | Repartir d'une base propre | `docker compose exec app php artisan migrate:fresh --seed` |
 | Compiler le CSS (Tailwind) | `docker compose run --rm node npm install` puis `docker compose run --rm node npm run build` |
 
