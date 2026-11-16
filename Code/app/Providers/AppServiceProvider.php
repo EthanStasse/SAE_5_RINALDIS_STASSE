@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Structure;
 use App\Support\StructureCourante;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -15,6 +17,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Le Jardin courant est affiché dans l'en-tête de toutes les pages.
+        View::composer(['components.layouts.app', 'accueil'], function ($view): void {
+            $id = app(StructureCourante::class)->id();
+            $view->with('structureCourante', $id === null ? null : Structure::find($id));
+        });
     }
 }
