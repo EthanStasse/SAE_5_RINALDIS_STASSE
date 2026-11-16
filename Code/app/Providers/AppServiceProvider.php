@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Alerte;
 use App\Models\Structure;
 use App\Support\StructureCourante;
 use Illuminate\Support\Facades\View;
@@ -21,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['components.layouts.app', 'accueil'], function ($view): void {
             $id = app(StructureCourante::class)->id();
             $view->with('structureCourante', $id === null ? null : Structure::find($id));
+
+            // EF-C-11 : nombre d'alertes en cours, affiché dans le menu.
+            $view->with('nombreAlertes', $id !== null && (auth()->user()?->can('voir-serres') ?? false)
+                ? Alerte::query()->ouvertes()->count()
+                : 0);
         });
     }
 }

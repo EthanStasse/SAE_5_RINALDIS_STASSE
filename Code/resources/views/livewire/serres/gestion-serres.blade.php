@@ -71,6 +71,9 @@
                         <tr wire:key="serre-{{ $serre->id }}">
                             <td class="px-4 py-2 font-medium">
                                 <a href="{{ route('serres.show', $serre) }}" class="text-green-800 underline hover:text-green-950">{{ $serre->nom }}</a>
+                                @if ($serre->alertes_ouvertes_count > 0)
+                                    <span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">{{ $serre->alertes_ouvertes_count }} alerte(s)</span>
+                                @endif
                             </td>
                             <td class="px-4 py-2 text-stone-600">{{ $serre->emplacement ?? '—' }}</td>
                             <td class="px-4 py-2">{{ $serre->boitiers_count }}</td>

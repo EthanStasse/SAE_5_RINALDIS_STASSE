@@ -16,6 +16,12 @@
                     <a href="{{ route('accueil') }}" class="font-semibold text-green-800">{{ config('app.name') }}</a>
                     @can('voir-serres')
                         <a href="{{ route('serres.index') }}" @class(['text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('serres.*')])>Serres</a>
+                        <a href="{{ route('alertes.index') }}" @class(['flex items-center gap-1 text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('alertes.*')])>
+                            Alertes
+                            @if ($nombreAlertes > 0)
+                                <span class="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white" aria-label="{{ $nombreAlertes }} alerte(s) en cours">{{ $nombreAlertes }}</span>
+                            @endif
+                        </a>
                     @endcan
                 </nav>
 

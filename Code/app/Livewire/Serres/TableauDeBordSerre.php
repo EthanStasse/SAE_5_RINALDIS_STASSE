@@ -82,6 +82,7 @@ class TableauDeBordSerre extends Component
         }
 
         return view('livewire.serres.tableau-de-bord-serre', [
+            'alertes' => $this->serre->alertes()->ouvertes()->orderByDesc('debut_le')->get(),
             'cartes' => $cartes,
             'boitiers' => $this->serre->boitiers()->orderBy('nom')->get(),
         ]);

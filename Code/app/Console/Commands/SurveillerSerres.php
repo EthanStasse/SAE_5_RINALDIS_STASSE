@@ -13,17 +13,18 @@ class SurveillerSerres extends Command
 {
     protected $signature = 'serres:surveiller';
 
-    protected $description = 'Ouvre et ferme les alertes des serres (seuils dépassés, capteurs muets)';
+    protected $description = 'Ouvre, ferme et envoie par e-mail les alertes des serres (seuils dépassés, capteurs muets)';
 
     public function handle(SurveillanceSerres $surveillance): int
     {
         $bilan = $surveillance->surveillerTout();
 
         $this->info(sprintf(
-            '%d Jardin(s) surveillé(s) : %d alerte(s) ouverte(s), %d fermée(s).',
+            '%d Jardin(s) surveillé(s) : %d alerte(s) ouverte(s), %d fermée(s), %d envoyée(s) par e-mail.',
             $bilan['structures'],
             $bilan['ouvertes'],
             $bilan['fermees'],
+            $bilan['notifiees'],
         ));
 
         return self::SUCCESS;

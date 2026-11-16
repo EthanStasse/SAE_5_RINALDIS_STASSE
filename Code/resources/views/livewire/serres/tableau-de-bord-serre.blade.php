@@ -17,6 +17,18 @@
         </div>
     </div>
 
+    {{-- Alertes en cours (EF-C-11) --}}
+    @if ($alertes->isNotEmpty())
+        <div class="space-y-2 rounded-xl border-2 border-red-500 bg-red-50 p-4" role="alert">
+            <h2 class="font-semibold text-red-900">{{ $alertes->count() }} alerte(s) en cours</h2>
+            <ul class="list-disc space-y-1 pl-5 text-red-900">
+                @foreach ($alertes as $alerte)
+                    <li wire:key="alerte-{{ $alerte->id }}">{{ $alerte->message }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Dernières valeurs --}}
     <div class="grid gap-4 sm:grid-cols-3">
         @foreach ($cartes as $carte)

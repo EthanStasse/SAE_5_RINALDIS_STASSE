@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Serre surveillée (module C). Premier modèle métier : sert d'exemple pour l'isolation.
  *
  * @property-read int|null $boitiers_count Rempli par withCount('boitiers').
+ * @property-read int|null $alertes_ouvertes_count Rempli par withCount (liste des serres).
  */
 class Serre extends Model
 {
