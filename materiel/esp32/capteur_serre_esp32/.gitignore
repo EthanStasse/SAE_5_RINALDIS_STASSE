@@ -1,0 +1,2 @@
+# Contient le mot de passe Wi-Fi et le jeton du boîtier : jamais dans Git.
+secrets.h

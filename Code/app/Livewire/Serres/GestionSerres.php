@@ -123,6 +123,7 @@ class GestionSerres extends Component
         return view('livewire.serres.gestion-serres', [
             'serres' => Serre::withCount('boitiers')->orderBy('nom')->get(),
             'peutGerer' => auth()->user()?->can('parametrer-structure') ?? false,
+            'peutReglerSeuils' => auth()->user()?->can('gerer-seuils') ?? false,
         ]);
     }
 

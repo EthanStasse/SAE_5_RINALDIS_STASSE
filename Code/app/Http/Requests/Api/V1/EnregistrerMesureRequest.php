@@ -2,14 +2,13 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Enums\Grandeur;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Validation d'une mesure envoyée par un boîtier (EF-C-04, EF-C-05).
  *
- * Plages plausibles = plages de mesure des capteurs (fiches techniques) :
- *   - DHT22  : température -40 à 80 °C, humidité 0 à 100 %
- *   - BH1750 : luminosité 0 à 65 535 lx
+ * Plages plausibles : définies dans App\Enums\Grandeur (fiches techniques des capteurs).
  * Une valeur en dehors ne peut pas venir d'un capteur qui fonctionne :
  * c'est une panne, un parasite ou une requête forgée. Elle est refusée (422).
  *
@@ -18,18 +17,6 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class EnregistrerMesureRequest extends FormRequest
 {
-    public const TEMPERATURE_MIN = -40;
-
-    public const TEMPERATURE_MAX = 80;
-
-    public const HUMIDITE_MIN = 0;
-
-    public const HUMIDITE_MAX = 100;
-
-    public const LUMINOSITE_MIN = 0;
-
-    public const LUMINOSITE_MAX = 65535;
-
     /** Tolérance pour une horloge de passerelle légèrement en avance. */
     public const AVANCE_MAX_MINUTES = 5;
 
@@ -55,10 +42,10 @@ class EnregistrerMesureRequest extends FormRequest
             'mesure_le' => ['bail', 'required', 'string', 'regex:'.self::FORMAT_DATE, 'date', 'before_or_equal:'.$limite],
             'temperature' => [
                 'nullable', 'numeric', 'required_without_all:humidite,luminosite',
-                'between:'.self::TEMPERATURE_MIN.','.self::TEMPERATURE_MAX,
+                self::plage(Grandeur::Temperature),
             ],
-            'humidite' => ['nullable', 'numeric', 'between:'.self::HUMIDITE_MIN.','.self::HUMIDITE_MAX],
-            'luminosite' => ['nullable', 'numeric', 'between:'.self::LUMINOSITE_MIN.','.self::LUMINOSITE_MAX],
+            'humidite' => ['nullable', 'numeric', self::plage(Grandeur::Humidite)],
+            'luminosite' => ['nullable', 'numeric', self::plage(Grandeur::Luminosite)],
         ];
     }
 
@@ -85,5 +72,11 @@ class EnregistrerMesureRequest extends FormRequest
             'luminosite.numeric' => 'La luminosité doit être un nombre.',
             'luminosite.between' => 'La luminosité doit être comprise entre 0 et 65 535 lx.',
         ];
+    }
+
+    /** Règle « between » construite à partir de la plage plausible de la grandeur. */
+    public static function plage(Grandeur $grandeur): string
+    {
+        return 'between:'.$grandeur->minimumPlausible().','.$grandeur->maximumPlausible();
     }
 }

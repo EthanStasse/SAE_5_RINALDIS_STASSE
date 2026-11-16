@@ -61,7 +61,7 @@
                         <th scope="col" class="px-4 py-2 font-medium">Nom</th>
                         <th scope="col" class="px-4 py-2 font-medium">Emplacement</th>
                         <th scope="col" class="px-4 py-2 font-medium">Boîtiers</th>
-                        @if ($peutGerer)
+                        @if ($peutGerer || $peutReglerSeuils)
                             <th scope="col" class="px-4 py-2 font-medium"><span class="sr-only">Actions</span></th>
                         @endif
                     </tr>
@@ -72,12 +72,18 @@
                             <td class="px-4 py-2 font-medium">{{ $serre->nom }}</td>
                             <td class="px-4 py-2 text-stone-600">{{ $serre->emplacement ?? '—' }}</td>
                             <td class="px-4 py-2">{{ $serre->boitiers_count }}</td>
-                            @if ($peutGerer)
-                                <td class="px-4 py-2 text-right whitespace-nowrap">
-                                    <button type="button" wire:click="modifier({{ $serre->id }})" class="text-green-800 underline hover:text-green-950">Modifier</button>
-                                    <button type="button" wire:click="supprimer({{ $serre->id }})"
-                                            wire:confirm="Supprimer la serre « {{ $serre->nom }} » ?"
-                                            class="ml-3 text-red-700 underline hover:text-red-900">Supprimer</button>
+                            @if ($peutGerer || $peutReglerSeuils)
+                                <td class="space-x-3 px-4 py-2 text-right whitespace-nowrap">
+                                    @if ($peutReglerSeuils)
+                                        <a href="{{ route('serres.seuils', $serre) }}" class="text-green-800 underline hover:text-green-950">Seuils</a>
+                                    @endif
+                                    @if ($peutGerer)
+                                        <a href="{{ route('serres.boitiers', $serre) }}" class="text-green-800 underline hover:text-green-950">Boîtiers</a>
+                                        <button type="button" wire:click="modifier({{ $serre->id }})" class="text-green-800 underline hover:text-green-950">Modifier</button>
+                                        <button type="button" wire:click="supprimer({{ $serre->id }})"
+                                                wire:confirm="Supprimer la serre « {{ $serre->nom }} » ?"
+                                                class="text-red-700 underline hover:text-red-900">Supprimer</button>
+                                    @endif
                                 </td>
                             @endif
                         </tr>

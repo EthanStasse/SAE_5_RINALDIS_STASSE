@@ -9,7 +9,6 @@ use App\Livewire\Serres\GestionSerres;
 use App\Models\Boitier;
 use App\Models\Serre;
 use App\Models\Structure;
-use App\Models\User;
 use App\Support\StructureCourante;
 use Database\Seeders\RolesEtPermissionsSeeder;
 use Illuminate\Support\Facades\DB;
@@ -30,31 +29,6 @@ beforeEach(function () {
         ];
     });
 });
-
-/** Crée un compte ayant ce rôle dans ce Jardin. */
-function compteDans(Structure $structure, string $role): User
-{
-    $user = User::factory()->create();
-    setPermissionsTeamId($structure->id);
-    $user->assignRole($role);
-    setPermissionsTeamId(null);
-
-    return $user;
-}
-
-/**
- * Pour les tests Livewire, qui ne passent pas par les middlewares HTTP :
- * on se connecte et on fixe le Jardin courant à la main.
- */
-function agirDans(Structure $structure, string $role): User
-{
-    $user = compteDans($structure, $role);
-    test()->actingAs($user);
-    app(StructureCourante::class)->definir($structure->id);
-    setPermissionsTeamId($structure->id);
-
-    return $user;
-}
 
 describe('page des serres', function () {
     it('envoie un visiteur vers la connexion', function () {

@@ -1,347 +1,223 @@
-# Guide de montage et de mise en service — boîtier capteur de serre
+# Guide de montage et de mise en service — boîtier capteur de serre (ESP32)
 
 Exigence couverte : **EF-C-15** (câblage, flashage, configuration).
-Durée : environ 2 h la première fois.
+Durée : environ 1 h 30 la première fois.
 
 ```
-Capteurs ──fils──> Arduino ──câble USB──> Raspberry Pi ──Wi-Fi──> API Laravel (PC, puis serveur de recette)
+Capteurs Grove ──fils──> ESP32 ──Wi-Fi + HTTPS + jeton──> API Laravel (PC, puis serveur de recette)
 ```
 
-Ordre conseillé : on valide chaque maillon avant d'ajouter le suivant.
+C'est l'architecture de la proposition technique : l'ESP32 mesure et envoie lui-même chaque mesure à `POST /api/v1/mesures`. Une solution de secours sans ESP32 (Arduino + Raspberry Pi) est décrite dans [`GUIDE_MONTAGE_ARDUINO_PI.md`](GUIDE_MONTAGE_ARDUINO_PI.md).
 
-1. [Câbler l'Arduino](#1-câbler-larduino)
-2. [Flasher et tester l'Arduino seul (sur le PC)](#2-flasher-et-tester-larduino-seul)
-3. [Préparer le Raspberry Pi](#3-préparer-le-raspberry-pi)
-4. [Tester la passerelle avec la fausse API](#4-tester-la-passerelle-avec-la-fausse-api)
-5. [Relier la passerelle à l'API Laravel du PC](#5-relier-la-passerelle-à-lapi-laravel-du-pc)
-6. [Installer la passerelle en service](#6-installer-la-passerelle-en-service)
+1. [Matériel](#1-matériel)
+2. [Câbler](#2-câbler)
+3. [Préparer l'IDE Arduino](#3-préparer-lide-arduino)
+4. [Préparer l'API sur le PC et créer le jeton](#4-préparer-lapi-sur-le-pc-et-créer-le-jeton)
+5. [Configurer et téléverser](#5-configurer-et-téléverser)
+6. [Vérifier](#6-vérifier)
 7. [Tests de robustesse](#7-tests-de-robustesse)
-8. [Dépannage](#8-dépannage)
+8. [Passer en HTTPS (recette)](#8-passer-en-https-recette)
+9. [Dépannage](#9-dépannage)
 
 ---
 
-## 1. Câbler l'Arduino
+## 1. Matériel
 
-**Toujours débrancher le câble USB pendant le câblage.** Le détail des schémas est dans [`CABLAGE.md`](CABLAGE.md).
+| Élément | Rôle |
+|---|---|
+| ESP32 DevKit / DevKitC (WROOM-32) + câble USB **de données** | Mesure et envoi en Wi-Fi |
+| Grove - Temperature & Humidity Sensor **Pro** (blanc, DHT22) | Température + humidité de l'air |
+| Grove - Digital Light Sensor (TSL2561) | Luminosité en lux |
+| Grove - LED, Grove - Buzzer | Signal d'alerte local (facultatif) |
+| 4 câbles **Grove vers fils mâles** + une breadboard | Raccordement (l'ESP32 n'a qu'une broche 3V3) |
 
-| Élément | Broche Arduino | Remarque |
-|---|---|---|
-| DHT22 VCC | 5V | |
-| DHT22 DATA | **D4** | résistance 10 kΩ entre DATA et 5V (inutile sur un module à 3 broches) |
-| DHT22 GND | GND | |
-| BH1750 VCC | 5V (module GY-302) ou 3,3V (sans régulateur) | |
-| BH1750 GND | GND | |
-| BH1750 SDA | **A4** sur Uno · **D2** sur Leonardo · ou la broche marquée SDA | |
-| BH1750 SCL | **A5** sur Uno · **D3** sur Leonardo · ou la broche marquée SCL | |
-| BH1750 ADDR | GND ou rien | adresse I2C 0x23 |
-| LED | **D9** → résistance 220 Ω → patte longue ; patte courte → GND | |
-| Buzzer | **D8** → (+) ; (−) → GND | voir `CABLAGE.md` si buzzer passif ou magnétique |
-
-Astuce : sur la breadboard, reliez une ligne d'alimentation au 5V et une autre au GND de l'Arduino, puis branchez tout le monde dessus.
+Couverture d'EF-C-03 : température, humidité de l'air et luminosité.
 
 ---
 
-## 2. Flasher et tester l'Arduino seul
+## 2. Câbler
 
-### 2.1 Installer l'IDE et les bibliothèques (sur le PC)
+**ESP32 débranché pendant le câblage.** L'ESP32 fonctionne en **3,3 V** : tous les modules sont alimentés par la broche **3V3**, jamais par 5V.
+
+1. Enficher l'ESP32 à cheval sur la rainure centrale de la breadboard.
+2. Relier la broche **3V3** de l'ESP32 à la ligne rouge (+) de la breadboard, et une broche **GND** à la ligne bleue (−).
+3. Brancher chaque câble Grove (code couleur : **jaune** = signal, **blanc** = 2ᵉ signal, **rouge** = alimentation, **noir** = masse) :
+
+| Module | Jaune | Blanc | Rouge | Noir |
+|---|---|---|---|---|
+| Temperature & Humidity Sensor **Pro** | **GPIO 4** | — | ligne 3V3 | ligne GND |
+| Digital Light Sensor (I2C) | **GPIO 22** (SCL) | **GPIO 21** (SDA) | ligne 3V3 | ligne GND |
+| LED | **GPIO 25** | — | ligne 3V3 | ligne GND |
+| Buzzer | **GPIO 26** | — | ligne 3V3 | ligne GND |
+
+Les numéros GPIO sont imprimés à côté des broches (parfois sous la forme « D4 », « D21 », « D22 », « D25 », « D26 », ou « IO4 »…).
+
+**Capteur blanc marqué V2.0 (DHT20)** : il est en I2C. Le brancher comme le Digital Light Sensor (jaune sur GPIO 22, blanc sur GPIO 21 : deux modules I2C peuvent partager ces broches via la breadboard) et mettre `TEMP_DHT20` dans le programme (étape 5.2).
+
+Broches évitées volontairement : GPIO 0, 2, 5, 12, 15 (elles influencent le démarrage) et GPIO 34 à 39 (entrée seule).
+
+---
+
+## 3. Préparer l'IDE Arduino
 
 1. Installer **Arduino IDE 2** (arduino.cc/en/software).
-2. *Outils → Gérer les bibliothèques*, installer :
+2. *Fichier → Préférences → URL de gestionnaire de cartes supplémentaires*, ajouter :
+   ```
+   https://espressif.github.io/arduino-esp32/package_esp32_index.json
+   ```
+3. *Outils → Carte → Gestionnaire de cartes* : chercher **esp32** et installer **esp32 by Espressif Systems**.
+4. *Outils → Gérer les bibliothèques*, installer :
    - **DHT sensor library** (Adafruit) → accepter **Adafruit Unified Sensor** ;
-   - **BH1750** (Christopher Laws).
-
-### 2.2 Téléverser
-
-1. Ouvrir `materiel/arduino/capteurs_serre/capteurs_serre.ino`.
-2. **Buzzer** : si c'est un buzzer passif (il ne fait qu'un « clic » sous 5 V continu), mettre `const bool BUZZER_ACTIF = false;` en haut du fichier.
-3. Brancher l'Arduino en USB. *Outils → Type de carte* : **Arduino Uno** (ou **Arduino Leonardo**). *Outils → Port* : le port COM qui apparaît.
-4. Cliquer sur **Téléverser** (flèche →). Attendre « Téléversement terminé ».
-   - Leonardo : le numéro de port COM peut changer pendant le téléversement, c'est normal.
-
-### 2.3 Tester avec le Moniteur série
-
-*Outils → Moniteur série*, puis en bas à droite : **115200 bauds** et **Nouvelle ligne** (« New Line ») — sans cela les commandes ne sont pas reçues.
-
-| Test | Action | Résultat attendu |
-|---|---|---|
-| Démarrage | Appuyer sur le bouton RESET de la carte | La LED s'allume 0,3 s puis `{"type":"demarrage","version":1}` |
-| Première mesure | Attendre 3 s | `{"type":"mesure","seq":1,"temperature":21.3,"humidite":48.7,"luminosite":312.5}` |
-| Mesures rapides | Taper `INTERVALLE 10` puis Entrée | `{"type":"ack","commande":"INTERVALLE"}` puis une mesure toutes les 10 s |
-| Humidité | Souffler sur le DHT22 | `humidite` monte nettement |
-| Luminosité | Couvrir le BH1750 avec la main, puis l'éclairer avec un téléphone | `luminosite` proche de 0, puis plusieurs centaines ou milliers |
-| État | Taper `PING` | `{"type":"pong","version":1,"intervalle":10,"alerte":0}` |
-| Alerte locale | Taper `ALERTE 1` | LED qui clignote + bip court toutes les 10 s |
-| Fin d'alerte | Taper `ALERTE 0` | LED éteinte, silence |
-| Capteur débranché | Débrancher le fil DATA du DHT22 | `"temperature":null,"humidite":null` (la luminosité continue) |
-| Commande inconnue | Taper `BONJOUR` | `{"type":"erreur","message":"commande inconnue"}` |
-
-**Fermer le Moniteur série** avant de brancher l'Arduino sur le Pi (sinon le port est occupé).
-
-Recommencer avec la deuxième carte si vous l'utilisez.
+   - **Adafruit TSL2561** ;
+   - **DHT20** (Rob Tillaart), seulement pour un capteur V2.0.
+5. Brancher l'ESP32. Si aucun port COM n'apparaît, installer le pilote de la puce USB de la carte (inscrite près du port USB) : **CP2102** (pilote « CP210x » de Silicon Labs) ou **CH340** (pilote WCH). Vérifier aussi que le câble USB transmet les données (certains câbles ne font que charger).
 
 ---
 
-## 3. Préparer le Raspberry Pi
+## 4. Préparer l'API sur le PC et créer le jeton
 
-### 3.1 Installer le système (sur le PC)
-
-1. Installer **Raspberry Pi Imager** (raspberrypi.com/software).
-2. Appareil : **Raspberry Pi 3** · Système : **Raspberry Pi OS (other) → Raspberry Pi OS Lite (64-bit)** · Stockage : la carte microSD.
-3. Dans **Modifier les réglages** :
-   - nom d'hôte : `serre-pi` ;
-   - nom d'utilisateur et mot de passe (à noter) ;
-   - Wi-Fi : nom et mot de passe du réseau, pays **FR** ;
-   - fuseau : **Europe/Paris** ;
-   - onglet Services : **activer SSH** (authentification par mot de passe).
-4. Écrire la carte, la mettre dans le Pi, brancher l'alimentation (**5 V 2,5 A**). Attendre 2 à 3 minutes.
-
-### 3.2 Se connecter en SSH (PowerShell sur le PC)
-
-```powershell
-ssh <utilisateur>@serre-pi.local
-```
-
-Si `serre-pi.local` n'est pas trouvé : chercher l'adresse IP du Pi dans l'interface de la box ou du partage de connexion, puis `ssh <utilisateur>@<ip-du-pi>`.
-
-### 3.3 Installer les outils (sur le Pi)
-
-```bash
-sudo apt update
-sudo apt install -y git python3-serial python3-requests sqlite3
-git clone https://github.com/EthanStasse/SAE_5_RINALDIS_STASSE.git
-cd SAE_5_RINALDIS_STASSE/materiel/passerelle
-python3 -m unittest discover -s tests -v      # 16 tests, tous « ok »
-timedatectl                                    # « System clock synchronized: yes »
-groups                                         # doit contenir « dialout »
-```
-
-Si `dialout` n'apparaît pas : `sudo usermod -aG dialout $USER`, puis se déconnecter (`exit`) et se reconnecter.
-
-### 3.4 Brancher l'Arduino sur le Pi
-
-```bash
-ls -l /dev/serial/by-id/
-```
-
-Résultat attendu (exemples) :
-
-```
-usb-Arduino__www.arduino.cc__0043_7563331363335141F0A1-if00 -> ../../ttyACM0   (Uno)
-usb-Arduino_LLC_Arduino_Leonardo-if00 -> ../../ttyACM1                          (Leonardo)
-```
-
-On utilise toujours le chemin **/dev/serial/by-id/...** : il ne change pas quand on rebranche, contrairement à `ttyACM0`.
-
----
-
-## 4. Tester la passerelle avec la fausse API
-
-But : vérifier la chaîne Arduino → Pi sans Laravel. Ouvrir **deux** fenêtres PowerShell connectées en SSH au Pi.
-
-**Fenêtre 1** — fausse API (alerte si T > 26 °C) :
-
-```bash
-cd ~/SAE_5_RINALDIS_STASSE/materiel/passerelle
-python3 outils/faux_api.py --port 8000 --jeton test123 --seuil-temperature 26
-```
-
-**Fenêtre 2** — passerelle :
-
-```bash
-cd ~/SAE_5_RINALDIS_STASSE/materiel/passerelle
-nano outils/config.test-local.toml     # remplacer port = "/dev/ttyACM0" par le chemin /dev/serial/by-id/...
-python3 passerelle.py --config outils/config.test-local.toml -v
-```
-
-Attendu dans la fenêtre 2 :
-
-```
-INFO boitier.serre-test: ouverture de /dev/serial/by-id/...
-INFO boitier.serre-test: Arduino OK (protocole v1, intervalle 10 s)
-INFO passerelle: [serre-test] mesure n°1 : T=21.4 °C  H=48.7 %  L=312.5 lx
-```
-
-Attendu dans la fenêtre 1 :
-
-```
-2026-11-16T20:15:00Z  T=21.4  H=48.7  L=312.5  alerte=False
-```
-
-**Test de l'alerte** : serrer le DHT22 dans la main. Au-delà de 26 °C, la fausse API répond `alerte=True` et la LED + le buzzer de l'Arduino s'activent. En relâchant, ils s'arrêtent à la mesure suivante sous 26 °C.
-
-Arrêter avec **Ctrl+C** dans les deux fenêtres.
-
----
-
-## 5. Relier la passerelle à l'API Laravel du PC
-
-### 5.1 Sur le PC : rendre l'API joignable
+Pour les premiers tests, l'ESP32 envoie à l'application Laravel qui tourne sur le PC.
 
 1. Démarrer l'application : dans `Code\`, `docker compose up -d`.
-2. Trouver l'adresse IP du PC sur le Wi-Fi : `ipconfig` → carte « Wi-Fi » → **Adresse IPv4** (ex. `192.168.1.42`).
+2. Adresse IP du PC sur le Wi-Fi : `ipconfig` → carte « Wi-Fi » → **Adresse IPv4** (ex. `192.168.1.42`).
 3. Ouvrir le port 8080 dans le pare-feu Windows (PowerShell **en administrateur**, une seule fois) :
-
    ```powershell
    New-NetFirewallRule -DisplayName "Cocagne API 8080" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow -Profile Private
    ```
+   Le réseau Wi-Fi du PC doit être en profil **Privé**.
+4. Créer le boîtier et son jeton : sur http://localhost:8080, se connecter avec `admin.thaon@cocagne.test` / `password`, menu **Serres**, lien **Boîtiers** de la « Serre nord », puis **Déclarer le boîtier**.
+   **Copier le jeton affiché** (48 caractères) : il n'est stocké nulle part en clair et ne sera plus jamais affiché. En cas d'oubli, bouton **Nouveau jeton**.
 
-   Le réseau Wi-Fi doit être en profil **Privé** (*Paramètres → Réseau → Wi-Fi → Propriétés*).
+   Sans l'écran (dépannage), avec Tinker : `docker compose exec app php artisan tinker`, puis
+   ```php
+   app(App\Support\StructureCourante::class)->sansFiltre(fn () => App\Models\Boitier::creerPour(App\Models\Serre::where('nom', 'Serre nord')->first(), 'Boîtier ESP32')[1]);
+   ```
 
-### 5.2 Créer un boîtier et son jeton (sur le PC)
+**Réseau Wi-Fi** : l'ESP32 ne fonctionne qu'en **2,4 GHz** et ne sait pas se connecter à un Wi-Fi d'entreprise (eduroam, identifiant + mot de passe). Le plus simple : le **partage de connexion d'un téléphone** (en 2,4 GHz ou « compatibilité maximale »), avec le PC connecté au même partage.
 
-Tant que l'écran des boîtiers n'existe pas, on passe par Tinker :
+---
+
+## 5. Configurer et téléverser
+
+### 5.1 Le fichier de secrets
+
+1. Ouvrir `materiel/esp32/capteur_serre_esp32/capteur_serre_esp32.ino` dans l'IDE.
+2. Dans le même dossier, **copier `secrets.exemple.h` sous le nom `secrets.h`** (il apparaît alors comme un onglet dans l'IDE).
+3. Remplir `secrets.h` :
+   ```cpp
+   #define WIFI_SSID         "MonPartage"
+   #define WIFI_MOT_DE_PASSE "motdepasse"
+   #define API_URL "http://192.168.1.42:8080/api/v1/mesures"   // IP du PC (étape 4)
+   #define JETON_BOITIER "le-jeton-de-48-caracteres"
+   #define AUTORISER_HTTP_POUR_TESTS                           // décommenter pour le test sur le PC
+   static const char API_CERTIFICAT_CA[] = "";                // vide en HTTP
+   #define INTERVALLE_MESURE_S 10                              // 10 s pour les tests, 300 en vrai
+   ```
+
+`secrets.h` est ignoré par Git (fichier `.gitignore` du dossier) : le mot de passe Wi-Fi et le jeton ne sont jamais publiés.
+
+### 5.2 Le capteur de température
+
+En haut de `capteur_serre_esp32.ino` :
+```cpp
+#define CAPTEUR_TEMPERATURE TEMP_DHT22   // capteur « Pro » ; TEMP_DHT20 pour un capteur « V2.0 »
+```
+
+### 5.3 Téléverser
+
+1. *Outils → Carte → esp32* : **ESP32 Dev Module**. *Outils → Port* : le port COM de l'ESP32.
+2. Cliquer sur **Téléverser**.
+3. Si l'IDE reste bloqué sur `Connecting....___....` : maintenir le bouton **BOOT** de l'ESP32 jusqu'à ce que le pourcentage d'écriture apparaisse.
+
+---
+
+## 6. Vérifier
+
+### 6.1 Moniteur série
+
+*Outils → Moniteur série*, réglé sur **115200 bauds** et **Nouvelle ligne**. Appuyer sur le bouton **EN** (ou RST) de l'ESP32 pour le redémarrer. Attendu :
+
+```
+=== Boîtier capteur de serre (ESP32) ===
+Capteur de lumière : OK
+ATTENTION : envoi en HTTP non chiffré (mode test)
+API : http://192.168.1.42:8080/api/v1/mesures — mesure toutes les 10 s
+Wi-Fi : connexion à « MonPartage »...
+Wi-Fi : connecté, adresse 192.168.43.120
+Mesure : T=21.4 °C  H=48.7 %  L=312.5 lx
+Envoi : mesure du 2026-11-16T20:45:12Z acceptée (HTTP 201), 0 en attente
+```
+
+| Test | Action | Résultat attendu |
+|---|---|---|
+| État | Taper `ETAT` | Wi-Fi connecté, heure UTC, mesures en attente, intervalle |
+| Humidité | Souffler sur le capteur blanc | `H=` monte nettement |
+| Température | Pincer le capteur blanc 30 s | `T=` monte de quelques degrés |
+| Luminosité | Couvrir le Digital Light Sensor, puis l'éclairer avec un téléphone | `L=` proche de 0, puis plusieurs centaines ou milliers |
+| Alerte locale | Taper `ALERTE 1`, puis `ALERTE 0` | LED qui clignote + bip toutes les 10 s, puis arrêt |
+| Mesure immédiate | Taper `MESURE` | Une mesure tout de suite |
+| Capteur débranché | Débrancher le fil jaune du capteur blanc | `T=nan  H=nan` ; l'API reçoit `null`, la luminosité continue |
+
+### 6.2 Dans Laravel (sur le PC)
 
 ```powershell
 docker compose exec app php artisan tinker
 ```
-
-puis coller cette ligne (crée « Boîtier 1 » dans la « Serre nord » du Jardin de Thaon) :
-
-```php
-app(App\Support\StructureCourante::class)->sansFiltre(fn () => App\Models\Boitier::creerPour(App\Models\Serre::where('nom', 'Serre nord')->first(), 'Boîtier 1')[1]);
-```
-
-**Noter le jeton affiché** (48 caractères) : il n'est stocké nulle part en clair et ne sera plus jamais affiché. Taper `exit` pour quitter.
-
-### 5.3 Vérifier depuis le Pi
-
-```bash
-curl http://<ip-du-pc>:8080/up
-curl -H "Authorization: Bearer <jeton>" http://<ip-du-pc>:8080/api/v1/boitier
-```
-
-Attendu : une page « Application up », puis `{"id":1,"nom":"Boîtier 1","serre":{"id":1,"nom":"Serre nord"}}`.
-
-### 5.4 Configurer et lancer la passerelle (sur le Pi)
-
-```bash
-cd ~/SAE_5_RINALDIS_STASSE/materiel/passerelle
-cp config.exemple.toml config.toml        # config.toml est ignoré par Git : le jeton n'est jamais commité
-nano config.toml
-```
-
-Modifier :
-
-```toml
-[api]
-url = "http://<ip-du-pc>:8080/api/v1/mesures"
-autoriser_http_pour_tests = true          # à retirer en recette (HTTPS)
-
-[passerelle]
-intervalle_mesure_s = 10                  # 10 s pour le test ; remettre 300 ensuite
-tampon = "/home/<utilisateur>/tampon.sqlite3"
-
-[[boitiers]]
-nom = "serre-nord"
-port = "/dev/serial/by-id/<le chemin vu à l'étape 3.4>"
-jeton = "<le jeton noté à l'étape 5.2>"
-```
-
-Lancer :
-
-```bash
-python3 passerelle.py --config config.toml -v
-```
-
-### 5.5 Vérifier dans Laravel (sur le PC)
-
-```powershell
-docker compose exec app php artisan tinker
-```
-
 ```php
 app(App\Support\StructureCourante::class)->sansFiltre(fn () => App\Models\Mesure::latest('id')->take(5)->get(['mesure_le', 'temperature', 'humidite', 'luminosite'])->toArray());
 ```
 
-Les mesures doivent apparaître, avec `mesure_le` en UTC (1 h de moins que l'heure de Paris en hiver).
+Les mesures apparaissent, avec `mesure_le` en UTC (1 h de moins que l'heure de Paris en hiver).
 
----
-
-## 6. Installer la passerelle en service
-
-Le service démarre avec le Pi et redémarre tout seul en cas de plantage.
-
-```bash
-cd ~/SAE_5_RINALDIS_STASSE/materiel/passerelle
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin passerelle
-sudo mkdir -p /opt/passerelle-serre /etc/passerelle-serre
-sudo cp passerelle.py protocole.py tampon.py client_api.py liaison_serie.py /opt/passerelle-serre/
-
-sudo cp config.toml /etc/passerelle-serre/config.toml
-sudo sed -i 's#^tampon = .*#tampon = "/var/lib/passerelle-serre/tampon.sqlite3"#' /etc/passerelle-serre/config.toml
-sudo sed -i 's#^intervalle_mesure_s = .*#intervalle_mesure_s = 300#' /etc/passerelle-serre/config.toml
-sudo chown root:passerelle /etc/passerelle-serre/config.toml
-sudo chmod 640 /etc/passerelle-serre/config.toml
-
-sudo cp passerelle-serre.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now passerelle-serre
-journalctl -u passerelle-serre -f       # Ctrl+C pour quitter l'affichage
-```
-
-Le jeton n'est lisible que par root et par le service (`chmod 640`).
-
-Pour une démonstration, on peut garder `intervalle_mesure_s = 10` le temps de la présentation.
+Une fois validé : remettre `INTERVALLE_MESURE_S 300` dans `secrets.h` et téléverser à nouveau.
 
 ---
 
 ## 7. Tests de robustesse
 
-À faire avec le service lancé et `journalctl -u passerelle-serre -f` ouvert.
-
 | Scénario | Action | Comportement attendu |
 |---|---|---|
-| Câble USB | Débrancher l'Arduino 20 s, rebrancher | `liaison série perdue`, puis `ouverture de ...` et `Arduino OK` |
-| Coupure de l'API | Sur le PC : `docker compose stop nginx` | `API injoignable ... mesure(s) en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
-| Retour de l'API | `docker compose start nginx` | Les mesures en attente partent toutes, dans l'ordre ; aucune perdue |
-| Redémarrage du Pi | `sudo reboot` | Le service repart seul ; les mesures en attente sont conservées (tampon SQLite) |
-| Jeton révoqué | Dans Tinker : `App\Models\Boitier::withoutGlobalScopes()->find(1)->revoquer();` | `jeton refusé (HTTP 401)`, mesures **conservées** sur le Pi |
-| Valeur absurde | (simulé par les tests automatiques) | `mesure refusée par l'API (HTTP 422)` avec le message explicite |
+| Coupure de l'API | Sur le PC : `docker compose stop nginx` | `API injoignable ... N en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
+| Retour de l'API | `docker compose start nginx` | Toutes les mesures en attente partent, dans l'ordre ; aucune perdue |
+| Coupure du Wi-Fi | Couper le partage de connexion 1 min, puis le rallumer | `Wi-Fi : connexion perdue`, mesures gardées, puis reconnexion et envoi |
+| Jeton révoqué | Écran **Boîtiers** → **Révoquer** | `jeton refusé (HTTP 401)`, mesures **conservées**, nouvel essai toutes les 5 min |
+| Doublon | (automatique) si la réponse se perd, la mesure est renvoyée avec le même `uuid` | L'API répond 200 sans créer de doublon |
 
-Pour réactiver le boîtier après le test de révocation : générer un nouveau jeton (`->genererJeton()` dans Tinker) et le mettre dans `/etc/passerelle-serre/config.toml`, puis `sudo systemctl restart passerelle-serre`.
+Pour réactiver le boîtier après le test de révocation : bouton **Réactiver (nouveau jeton)**, mettre le nouveau jeton dans `secrets.h`, téléverser.
+
+**Limite connue** : les mesures en attente sont gardées en mémoire vive (jusqu'à 288, soit 24 h à 5 min). Si l'ESP32 perd son alimentation pendant une coupure de l'API, celles-ci sont perdues. Amélioration possible : les écrire dans la mémoire flash (LittleFS).
 
 ---
 
-## 8. Dépannage
+## 8. Passer en HTTPS (recette)
+
+EF-C-04 impose HTTPS. Sur le serveur de recette :
+
+1. Dans `secrets.h` :
+   - `API_URL` en `https://<serveur-de-recette>/api/v1/mesures` ;
+   - **commenter** `AUTORISER_HTTP_POUR_TESTS` (le programme refuse alors tout envoi en HTTP) ;
+   - coller le certificat de l'autorité de certification du serveur dans `API_CERTIFICAT_CA`. Pour un certificat Let's Encrypt, c'est **ISRG Root X1** (https://letsencrypt.org/certs/isrgrootx1.pem) — voir l'exemple dans `secrets.exemple.h`.
+2. Créer le boîtier sur la recette (écran **Serres → Boîtiers**), mettre son jeton dans `JETON_BOITIER`.
+3. Téléverser.
+
+Avec le certificat, l'ESP32 vérifie qu'il parle bien au vrai serveur avant d'envoyer son jeton : un faux point d'accès Wi-Fi ne peut pas le récupérer.
+
+---
+
+## 9. Dépannage
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
-| Rien dans le Moniteur série | Mauvaise vitesse | 115200 bauds |
-| Les commandes ne répondent pas | Pas de fin de ligne | Moniteur série : « Nouvelle ligne » |
-| `temperature` toujours `null` | DATA mal branché ou pas de résistance de tirage | Vérifier D4 et la 10 kΩ vers 5V |
-| `luminosite` toujours `null` | SDA/SCL inversés ou mauvaises broches (Leonardo : D2/D3) | Lancer le scanner I2C ci-dessous |
-| Téléversement impossible (Leonardo) | Port non détecté | Appuyer sur RESET juste après avoir cliqué sur Téléverser |
-| `Permission denied: /dev/ttyACM0` | Utilisateur hors du groupe `dialout` | `sudo usermod -aG dialout $USER`, se reconnecter |
-| `could not exclusively lock port` | Port déjà utilisé | Fermer l'autre programme (ou `sudo systemctl stop passerelle-serre`) |
-| `API injoignable (ConnectionError)` | PC éteint, Docker arrêté, mauvaise IP ou pare-feu | `curl http://<ip-du-pc>:8080/up` depuis le Pi |
-| `curl` bloque depuis le Pi | Réseau Wi-Fi qui isole les appareils (Wi-Fi d'école, invité) | Mettre le PC et le Pi sur le partage de connexion d'un téléphone |
-| `horloge NON synchronisée` | Pas d'accès NTP | Vérifier Internet : `timedatectl`, `ping fr.pool.ntp.org` |
-| Déconnexions USB aléatoires | Alimentation du Pi trop faible | `vcgencmd get_throttled` doit donner `0x0` |
-
-### Scanner I2C (vérifier que le BH1750 répond)
-
-Téléverser temporairement ce programme, ouvrir le Moniteur série à 115200 bauds : il doit afficher `0x23` (ou `0x5C` si ADDR est relié au VCC).
-
-```cpp
-#include <Wire.h>
-
-void setup() {
-  Serial.begin(115200);
-  while (!Serial && millis() < 3000) {}
-  Wire.begin();
-}
-
-void loop() {
-  Serial.println(F("Recherche I2C..."));
-  for (uint8_t adresse = 1; adresse < 127; adresse++) {
-    Wire.beginTransmission(adresse);
-    if (Wire.endTransmission() == 0) {
-      Serial.print(F("Trouvé : 0x"));
-      Serial.println(adresse, HEX);
-    }
-  }
-  delay(3000);
-}
-```
-
-Puis retéléverser `capteurs_serre.ino`.
+| Aucun port COM | Pilote USB absent ou câble de charge seule | Pilote CP210x ou CH340 ; autre câble |
+| Bloqué sur `Connecting...` | L'ESP32 n'entre pas en mode programmation | Maintenir **BOOT** pendant le téléversement |
+| `secrets.h: No such file or directory` | Fichier de secrets pas créé | Copier `secrets.exemple.h` en `secrets.h` (étape 5.1) |
+| Rien de lisible au Moniteur série | Mauvaise vitesse | 115200 bauds |
+| `Wi-Fi : connexion à ...` qui se répète | Réseau 5 GHz, Wi-Fi d'entreprise ou mauvais mot de passe | Partage de connexion en 2,4 GHz ; vérifier `secrets.h` |
+| `Envoi : en attente de l'heure (NTP)` | Pas d'accès Internet | Le réseau doit donner accès à Internet (serveurs NTP) |
+| `ERREUR config : HTTP refusé` | URL en `http://` sans le mode test | Décommenter `AUTORISER_HTTP_POUR_TESTS` (tests seulement) |
+| `API injoignable (connection refused)` | PC éteint, Docker arrêté, mauvaise IP ou pare-feu | Vérifier depuis un téléphone du même réseau : `http://<ip-du-pc>:8080/up` |
+| `mesure refusée par l'API (HTTP 422)` | Valeur hors plage ou heure fausse | Lire le message renvoyé : il nomme le champ en cause |
+| `T=nan  H=nan` | Capteur blanc mal branché ou mauvais `CAPTEUR_TEMPERATURE` | Jaune sur GPIO 4, rouge sur 3V3 ; `TEMP_DHT20` si V2.0 |
+| `Capteur de lumière : introuvable` | SDA/SCL inversés ou non alimenté | Jaune sur GPIO 22, blanc sur GPIO 21, rouge sur 3V3 |
+| `L=nan` en plein soleil | Capteur saturé (au-delà d'environ 40 000 lx) | Normal : la valeur revient quand la lumière baisse |
+| Redémarrages en boucle (`Brownout detector`) | Alimentation USB trop faible | Autre câble ou autre port USB |
