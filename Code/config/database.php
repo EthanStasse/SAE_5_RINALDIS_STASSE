@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Session PostgreSQL en UTC : les dates envoyées par Laravel (sans
+            // fuseau) sont interprétées en UTC, quel que soit le serveur (EF-C-04).
+            'timezone' => 'UTC',
         ],
 
         'sqlsrv' => [
