@@ -6,6 +6,7 @@ use App\Models\Concerns\AppartientAStructure;
 use Database\Factories\SerreFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Serre surveillée (module C). Premier modèle métier : sert d'exemple pour l'isolation.
@@ -22,4 +23,20 @@ class Serre extends Model
         'nom',
         'emplacement',
     ];
+
+    /**
+     * @return HasMany<Boitier, $this>
+     */
+    public function boitiers(): HasMany
+    {
+        return $this->hasMany(Boitier::class);
+    }
+
+    /**
+     * @return HasMany<Mesure, $this>
+     */
+    public function mesures(): HasMany
+    {
+        return $this->hasMany(Mesure::class);
+    }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// À ADAPTER : remplace par le vrai namespace de ton trait.
 use App\Models\Concerns\AppartientAStructure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * Boîtier capteur rattaché à une serre (module C, EF-C-02).
+ *
+ * Il s'authentifie auprès de l'API avec un jeton qui lui est propre. Seule
+ * l'empreinte SHA-256 du jeton est stockée : le jeton en clair n'est affiché
+ * qu'une fois, à la création ou à la régénération.
+ */
 class Boitier extends Model
 {
     use AppartientAStructure;
@@ -18,10 +24,14 @@ class Boitier extends Model
 
     protected $table = 'boitiers';
 
-    protected $fillable = ['nom'];
+    protected $fillable = [
+        'nom',
+    ];
 
-    // L'empreinte ne sort jamais du modèle (JSON, API, logs).
-    protected $hidden = ['jeton_hash'];
+    /** L'empreinte ne sort jamais du modèle (JSON, API, journaux). */
+    protected $hidden = [
+        'jeton_hash',
+    ];
 
     protected function casts(): array
     {
@@ -33,9 +43,10 @@ class Boitier extends Model
 
     /**
      * Crée un boîtier dans une serre et retourne [boîtier, jeton en clair].
-     * Le jeton en clair n'est affiché qu'une seule fois : il n'est stocké nulle part.
      *
-     * La structure est TOUJOURS celle de la serre, jamais une valeur reçue du formulaire.
+     * La structure est toujours celle de la serre. Si la serre appartient à un
+     * autre Jardin que la structure courante, le trait AppartientAStructure
+     * refuse la création (StructureNonAutoriseeException).
      *
      * @return array{0: self, 1: string}
      */
@@ -51,11 +62,11 @@ class Boitier extends Model
 
     /**
      * Génère (ou régénère) le jeton : l'ancien devient immédiatement invalide.
-     * Régénérer un jeton réactive aussi un boîtier révoqué.
+     * Régénérer le jeton réactive aussi un boîtier révoqué.
      */
     public function genererJeton(): string
     {
-        // Str::random utilise random_bytes() : générateur cryptographiquement sûr.
+        // Str::random() s'appuie sur random_bytes() : générateur cryptographiquement sûr.
         $jeton = Str::random(self::LONGUEUR_JETON);
         $this->jeton_hash = self::empreinte($jeton);
         $this->jeton_prefixe = substr($jeton, 0, 8);
@@ -67,7 +78,7 @@ class Boitier extends Model
 
     public function revoquer(): void
     {
-        $this->revoque_le = now();
+        $this->revoque_le = now()->toImmutable();
         $this->save();
     }
 
@@ -77,26 +88,35 @@ class Boitier extends Model
     }
 
     /**
-     * SHA-256 et non bcrypt : le jeton est aléatoire et très long (≈ 285 bits),
-     * donc impossible à deviner par force brute. Un hachage rapide suffit, et
-     * il permet de retrouver le boîtier par une simple recherche indexée.
-     * bcrypt sert aux mots de passe humains, qui sont courts et devinables.
+     * SHA-256 et non bcrypt : le jeton est aléatoire et long (environ 285 bits),
+     * donc impossible à deviner. Un hachage rapide suffit et permet de retrouver
+     * le boîtier par une recherche indexée. bcrypt protège les mots de passe
+     * humains, courts et devinables.
      */
     public static function empreinte(string $jeton): string
     {
         return hash('sha256', $jeton);
     }
 
+    /**
+     * @param  Builder<Boitier>  $requete
+     */
     public function scopeActifs(Builder $requete): void
     {
         $requete->whereNull('revoque_le');
     }
 
+    /**
+     * @return BelongsTo<Serre, $this>
+     */
     public function serre(): BelongsTo
     {
         return $this->belongsTo(Serre::class);
     }
 
+    /**
+     * @return HasMany<Mesure, $this>
+     */
     public function mesures(): HasMany
     {
         return $this->hasMany(Mesure::class);

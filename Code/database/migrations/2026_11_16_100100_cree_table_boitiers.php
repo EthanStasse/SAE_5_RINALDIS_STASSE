@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('boitiers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('structure_id')->constrained('structures')->restrictOnDelete();
+            $table->foreignId('structure_id')->index()->constrained()->restrictOnDelete();
             $table->unsignedBigInteger('serre_id');
             $table->string('nom', 100);
 

@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('mesures', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('structure_id')->constrained('structures')->restrictOnDelete();
+            $table->foreignId('structure_id')->index()->constrained()->restrictOnDelete();
             // serre_id est recopiée depuis le boîtier au moment de la réception :
             // si on déplace un boîtier, l'historique reste attaché à la bonne serre.
             $table->unsignedBigInteger('serre_id');
