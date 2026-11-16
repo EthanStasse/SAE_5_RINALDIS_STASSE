@@ -51,4 +51,20 @@ enum Grandeur: string
             self::Luminosite => 65535,
         };
     }
+
+    /** Nombre de décimales affichées. */
+    public function decimales(): int
+    {
+        return match ($this) {
+            self::Temperature, self::Humidite => 1,
+            self::Luminosite => 0,
+        };
+    }
+
+    /** Valeur à la française avec son unité : « 21,4 °C », « 12 500 lx ». */
+    public function formater(float $valeur): string
+    {
+        // Espace fine insécable comme séparateur de milliers.
+        return number_format($valeur, $this->decimales(), ',', "\u{202F}").' '.$this->unite();
+    }
 }

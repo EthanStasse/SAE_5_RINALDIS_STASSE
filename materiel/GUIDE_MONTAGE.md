@@ -177,8 +177,8 @@ Une fois validé : remettre `INTERVALLE_MESURE_S 300` dans `secrets.h` et télé
 
 | Scénario | Action | Comportement attendu |
 |---|---|---|
-| Coupure de l'API | Sur le PC : `docker compose stop nginx` | `API injoignable ... N en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
-| Retour de l'API | `docker compose start nginx` | Toutes les mesures en attente partent, dans l'ordre ; aucune perdue |
+| Coupure de l'API | Sur le PC : `docker compose stop web` | `API injoignable ... N en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
+| Retour de l'API | `docker compose start web` | Toutes les mesures en attente partent, dans l'ordre ; aucune perdue |
 | Coupure du Wi-Fi | Couper le partage de connexion 1 min, puis le rallumer | `Wi-Fi : connexion perdue`, mesures gardées, puis reconnexion et envoi |
 | Jeton révoqué | Écran **Boîtiers** → **Révoquer** | `jeton refusé (HTTP 401)`, mesures **conservées**, nouvel essai toutes les 5 min |
 | Doublon | (automatique) si la réponse se perd, la mesure est renvoyée avec le même `uuid` | L'API répond 200 sans créer de doublon |

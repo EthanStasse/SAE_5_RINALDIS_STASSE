@@ -5,14 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\Serre;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
- * Contrôleur minimal, utilisé par les tests d'isolation. Le module C le complétera.
+ * Pages d'une serre (module C).
  */
 class SerreController extends Controller
 {
-    public function show(Serre $serre): JsonResponse
+    /**
+     * Tableau de bord de la serre (EF-C-07). En JSON si le client le demande
+     * (utilisé par les tests d'isolation).
+     */
+    public function show(Request $request, Serre $serre): JsonResponse|View
     {
+        if (! $request->expectsJson()) {
+            return view('serres.show', ['serre' => $serre]);
+        }
+
         return response()->json([
             'id' => $serre->id,
             'nom' => $serre->nom,

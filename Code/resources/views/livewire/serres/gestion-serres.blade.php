@@ -69,7 +69,9 @@
                 <tbody class="divide-y divide-stone-100">
                     @foreach ($serres as $serre)
                         <tr wire:key="serre-{{ $serre->id }}">
-                            <td class="px-4 py-2 font-medium">{{ $serre->nom }}</td>
+                            <td class="px-4 py-2 font-medium">
+                                <a href="{{ route('serres.show', $serre) }}" class="text-green-800 underline hover:text-green-950">{{ $serre->nom }}</a>
+                            </td>
                             <td class="px-4 py-2 text-stone-600">{{ $serre->emplacement ?? '—' }}</td>
                             <td class="px-4 py-2">{{ $serre->boitiers_count }}</td>
                             @if ($peutGerer || $peutReglerSeuils)

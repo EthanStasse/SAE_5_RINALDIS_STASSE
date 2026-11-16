@@ -38,6 +38,7 @@ git clone <dépôt> && cd <dépôt>
 | Corriger le style | `docker compose exec app ./vendor/bin/pint` |
 | Analyse statique | `docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G` |
 | Repartir d'une base propre | `docker compose exec app php artisan migrate:fresh --seed` |
+| Lancer la surveillance des serres à la main | `docker compose exec app php artisan serres:surveiller` (sinon : automatique chaque minute, service `scheduler`) |
 | Compiler le CSS (Tailwind) | `docker compose run --rm node npm install` puis `docker compose run --rm node npm run build` |
 
 | Service | Adresse |

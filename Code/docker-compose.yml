@@ -8,6 +8,17 @@ services:
       db:
         condition: service_healthy
 
+  # Tâches planifiées (surveillance des serres chaque minute, EF-C-09/10).
+  scheduler:
+    build: docker/php
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     image: nginx:1.27-alpine
     ports:

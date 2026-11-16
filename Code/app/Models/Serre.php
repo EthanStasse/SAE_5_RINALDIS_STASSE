@@ -35,6 +35,14 @@ class Serre extends Model
     }
 
     /**
+     * @return HasMany<Alerte, $this>
+     */
+    public function alertes(): HasMany
+    {
+        return $this->hasMany(Alerte::class);
+    }
+
+    /**
      * @return HasMany<Seuil, $this>
      */
     public function seuils(): HasMany

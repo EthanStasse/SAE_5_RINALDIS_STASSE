@@ -7,6 +7,7 @@ use App\Http\Middleware\AuthentifierBoitier;
 use App\Http\Requests\Api\V1\EnregistrerMesureRequest;
 use App\Models\Boitier;
 use App\Models\Mesure;
+use App\Services\SurveillanceSerres;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,8 @@ use Illuminate\Support\Carbon;
  */
 class MesureController extends Controller
 {
+    public function __construct(private SurveillanceSerres $surveillance) {}
+
     public function store(EnregistrerMesureRequest $request): JsonResponse
     {
         $boitier = AuthentifierBoitier::boitier($request);
@@ -56,19 +59,26 @@ class MesureController extends Controller
             return $this->repondre($boitier, $deja, 200);
         }
 
+        // EF-C-09 : vérification immédiate des seuils, sans attendre la tâche
+        // planifiée, pour que la réponse indique déjà l'alerte au boîtier.
+        if ($boitier->serre !== null) {
+            $this->surveillance->verifierSeuils($boitier->serre);
+        }
+
         return $this->repondre($boitier, $mesure, 201);
     }
 
     private function repondre(Boitier $boitier, Mesure $mesure, int $statut): JsonResponse
     {
-        // Sert à l'alerte « capteur muet » (EF-C-10).
+        // Sert à l'alerte « capteur muet » (EF-C-10) : le boîtier vient de parler.
         $boitier->derniere_communication_le = now()->toImmutable();
         $boitier->save();
+        $this->surveillance->signalerCommunication($boitier);
 
         return response()->json([
             'id' => $mesure->id,
-            // Calculé à l'étape des alertes (EF-C-09) ; pilote la LED et le buzzer du boîtier.
-            'alerte_active' => false,
+            // Une alerte est ouverte dans la serre : le boîtier allume sa LED et son buzzer.
+            'alerte_active' => $boitier->serre !== null && $this->surveillance->serreEnAlerte($boitier->serre),
         ], $statut);
     }
 }

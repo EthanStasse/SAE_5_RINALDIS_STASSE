@@ -3,12 +3,23 @@
 namespace App\Models;
 
 use App\Models\Concerns\AppartientAStructure;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Mesure envoyée par un boîtier (module C, EF-C-03 et EF-C-04).
  * Une grandeur vaut null si son capteur était en erreur.
+ */
+/**
+ * Mesure envoyée par un boîtier (module C, EF-C-03 et EF-C-04).
+ * Une grandeur vaut null si son capteur était en erreur.
+ *
+ * @property CarbonImmutable $mesure_le
+ * @property CarbonImmutable $recu_le
+ * @property float|null $temperature
+ * @property float|null $humidite
+ * @property float|null $luminosite
  */
 class Mesure extends Model
 {

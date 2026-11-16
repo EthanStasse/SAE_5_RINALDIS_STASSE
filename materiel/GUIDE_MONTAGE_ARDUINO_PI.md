@@ -309,8 +309,8 @@ Pour une démonstration, on peut garder `intervalle_mesure_s = 10` le temps de l
 | Scénario | Action | Comportement attendu |
 |---|---|---|
 | Câble USB | Débrancher l'Arduino 20 s, rebrancher | `liaison série perdue`, puis `ouverture de ...` et `Arduino OK` |
-| Coupure de l'API | Sur le PC : `docker compose stop nginx` | `API injoignable ... mesure(s) en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
-| Retour de l'API | `docker compose start nginx` | Les mesures en attente partent toutes, dans l'ordre ; aucune perdue |
+| Coupure de l'API | Sur le PC : `docker compose stop web` | `API injoignable ... mesure(s) en attente`, l'attente double à chaque essai (5, 10, 20 s…) |
+| Retour de l'API | `docker compose start web` | Les mesures en attente partent toutes, dans l'ordre ; aucune perdue |
 | Redémarrage du Pi | `sudo reboot` | Le service repart seul ; les mesures en attente sont conservées (tampon SQLite) |
 | Jeton révoqué | Dans Tinker : `App\Models\Boitier::withoutGlobalScopes()->find(1)->revoquer();` | `jeton refusé (HTTP 401)`, mesures **conservées** sur le Pi |
 | Valeur absurde | (simulé par les tests automatiques) | `mesure refusée par l'API (HTTP 422)` avec le message explicite |
