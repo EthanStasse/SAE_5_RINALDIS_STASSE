@@ -38,6 +38,7 @@ git clone <dépôt> && cd <dépôt>
 | Corriger le style | `docker compose exec app ./vendor/bin/pint` |
 | Analyse statique | `docker compose exec app ./vendor/bin/phpstan analyse` |
 | Repartir d'une base propre | `docker compose exec app php artisan migrate:fresh --seed` |
+| Compiler le CSS (Tailwind) | `docker compose run --rm node npm install` puis `docker compose run --rm node npm run build` |
 
 | Service | Adresse |
 | --- | --- |

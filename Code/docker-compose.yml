@@ -39,5 +39,17 @@ services:
     ports:
       - "8025:8025"
 
+  # Compile le CSS Tailwind et le JavaScript (Vite). Outil ponctuel : il ne
+  # démarre pas avec « up -d ». Usage : docker compose run --rm node npm run build
+  node:
+    image: node:22-alpine
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    working_dir: /var/www/html
+    environment:
+      npm_config_cache: /tmp/.npm
+    volumes:
+      - .:/var/www/html
+    profiles: ["outils"]
+
 volumes:
   pgdata:
