@@ -32,6 +32,16 @@ beforeEach(function () {
             Serre::factory()->create(['structure_id' => $b->id, 'nom' => 'Tunnel B']),
         ];
     });
+
+    // Seuil de température de la serre nord : sans lui, la surveillance
+    // fermerait les alertes de température créées par les tests.
+    DB::table('seuils')->insert([
+        'structure_id' => $this->a->id,
+        'serre_id' => $this->serreA->id,
+        'grandeur' => 'temperature',
+        'minimum' => 10,
+        'maximum' => 30,
+    ]);
 });
 
 /** Ouvre (ou ferme si $fermee) une alerte de seuil dans une serre. */
