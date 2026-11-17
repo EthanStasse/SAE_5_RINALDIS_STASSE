@@ -98,3 +98,33 @@ jobs:
 
       - name: Tests (pytest)
         run: python -m pytest tests -v
+
+  # Compilation du front (Vite + Tailwind) dans Code/.
+  # Vérifie que le CSS et le JavaScript compilent avant la fusion :
+  # une erreur de syntaxe CSS ou une dépendance npm cassée se voit ici.
+  front:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Code
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 : même version que le service node de docker-compose.yml,
+      # et compatible avec Vite 8 (Node 20.19 ou 22.12 minimum).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # npm ci installe exactement les versions de package-lock.json
+      # (installation reproductible) et échoue si le lock n'est pas à jour.
+      - name: Dépendances
+        run: npm ci
+
+      - name: Compilation (Vite)
+        run: npm run build
+
+      - name: Vérifie le manifeste Vite
+        run: test -f public/build/manifest.json
