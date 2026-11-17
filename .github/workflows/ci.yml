@@ -1,8 +1,19 @@
 name: CI
 
+# Sur une pull request : à chaque push dans la branche de la PR.
+# Sur main : après chaque fusion (main est protégée, on n'y pousse jamais directement).
+# Les branches sans PR ne lancent pas la CI : cela évite de la lancer deux fois
+# (une pour le push, une pour la PR) sur la même modification.
 on:
   push:
+    branches: [main]
   pull_request:
+
+# Si on pousse un nouveau commit alors que la CI tourne encore sur la même
+# branche, l'exécution précédente est annulée : seul le dernier état compte.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   qualite:
@@ -62,3 +73,28 @@ jobs:
 
       - name: Audit des dépendances
         run: composer audit
+
+  # Tests unitaires de la passerelle du Raspberry Pi (materiel/passerelle).
+  # Job séparé : il tourne en parallèle du job Laravel, et un échec côté
+  # matériel se voit tout de suite, sans être mélangé aux tests PHP.
+  passerelle:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: materiel/passerelle
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 3.11 : la version de Raspberry Pi OS (Bookworm), celle qui
+      # exécutera vraiment la passerelle, et la première qui fournit tomllib.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Outils de test
+        run: python -m pip install pytest
+
+      - name: Tests (pytest)
+        run: python -m pytest tests -v
