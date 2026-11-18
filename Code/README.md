@@ -17,6 +17,7 @@ Socle technique : Laravel (PHP 8.3), PostgreSQL 16, Docker. Plusieurs Jardins (s
 ```
 
 Le script crée le squelette Laravel autour de nos fichiers, installe les paquets, configure `.env`, active les rôles par structure, crée la base, charge les données de démonstration et lance les tests. Comptez 5 à 10 minutes la première fois.
+Si le démarrage est interrompu, relancez `./demarrer.sh` : le script vérifie la présence de `vendor/autoload.php` et réinstalle les dépendances si l'installation précédente était incomplète.
 
 Ensuite, **committez tout** (dont `composer.json` et `composer.lock`) et poussez sur GitHub. Le fichier `.env` reste local (il est dans `.gitignore`).
 

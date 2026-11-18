@@ -3,6 +3,10 @@
 set -euo pipefail
 cd /var/www/html
 
+# Décompactage des dépendances sur un volume Windows peut dépasser le délai
+# par défaut de Composer (300 s).
+export COMPOSER_PROCESS_TIMEOUT=2000
+
 # 1. Squelette Laravel (uniquement la première fois)
 if [ ! -f artisan ]; then
   echo "==> Création du squelette Laravel"
@@ -13,7 +17,7 @@ if [ ! -f artisan ]; then
 fi
 
 # 2. Dépendances
-if [ ! -d vendor ]; then
+if [ ! -f vendor/autoload.php ]; then
   composer install --no-interaction
 fi
 
