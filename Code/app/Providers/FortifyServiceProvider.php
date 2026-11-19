@@ -48,7 +48,8 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(fn () => view('auth.connexion'));
         // EF-D-04 : demande du lien de réinitialisation.
         Fortify::requestPasswordResetLinkView(fn () => view('auth.mot-de-passe-oublie'));
-
+        // EF-D-04 : formulaire du nouveau mot de passe (lien reçu par e-mail).
+        Fortify::resetPasswordView(fn (Request $request) => view('auth.reinitialisation', ['request' => $request]));
         // Vérification du compte : un compte désactivé ne peut pas se connecter.
         // Même message d'erreur dans tous les cas : on ne révèle pas si l'adresse existe.
         Fortify::authenticateUsing(function (Request $request): ?User {
