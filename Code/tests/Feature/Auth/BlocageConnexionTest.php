@@ -142,4 +142,16 @@ describe('limitation par adresse IP (EF-D-06)', function () {
         seConnecter('198.51.100.1')->assertRedirect('/accueil');
         $this->assertAuthenticatedAs($this->compte);
     });
+
+    it('affiche une page en français avec le délai à attendre', function () {
+        foreach (range(1, 11) as $i) {
+            $reponse = $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.7'])
+                ->post('/login', ['email' => "compte{$i}@cocagne.test", 'password' => 'Mauvais-Mot-2026']);
+        }
+
+        $reponse->assertTooManyRequests()
+            ->assertHeader('Retry-After')
+            ->assertSee('Trop de tentatives')
+            ->assertSee('Revenir à la connexion');
+    });
 });
