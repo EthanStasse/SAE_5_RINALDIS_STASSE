@@ -37,5 +37,10 @@
                 Se connecter
             </button>
         </form>
+
+        {{-- EF-D-04 : lien vers la demande de réinitialisation. --}}
+        <p class="mt-4 text-center text-sm">
+            <a href="{{ route('password.request') }}" class="text-green-800 underline hover:text-green-900">Mot de passe oublié ?</a>
+        </p>
     </div>
 </x-layouts.app>

@@ -1,5 +1,7 @@
 <?php
 
+use Laravel\Fortify\Features;
+
 return [
 
     /*
@@ -161,8 +163,9 @@ return [
 
     'features' => [
         // Pas d'inscription libre : les comptes sont créés par l'administrateur
-        // de la structure (CDC module D). Mot de passe oublié, double
-        // authentification et clés d'accès viendront avec leurs exigences EF-D.
+        // de la structure (CDC module D).
+        // EF-D-04 : mot de passe oublié, lien valable 60 minutes (config/auth.php).
+        Features::resetPasswords(),
     ],
 
 ];
