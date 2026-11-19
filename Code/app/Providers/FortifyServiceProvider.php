@@ -53,10 +53,13 @@ class FortifyServiceProvider extends ServiceProvider
             return $user;
         });
 
+        // EF-D-06 : limitation par adresse IP, tous comptes confondus, contre le
+        // credential stuffing et le password spraying (un même poste qui essaie
+        // beaucoup de comptes). Au-delà : réponse 429 avec l'en-tête Retry-After.
+        // 10 par minute laisse de la marge à un Jardin dont tous les postes
+        // partagent la même adresse IP (NAT). Le blocage par compte est à part.
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute(10)->by('connexion-ip:'.$request->ip());
         });
 
         RateLimiter::for('two-factor', function (Request $request) {
