@@ -9,8 +9,10 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Http\Responses\LienReinitialisationDemande;
 use App\Models\User;
 use App\Support\BlocageComptes;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -51,6 +53,24 @@ class FortifyServiceProvider extends ServiceProvider
         // EF-D-04 : formulaire du nouveau mot de passe (lien reçu par e-mail).
         Fortify::resetPasswordView(fn (Request $request) => view('auth.reinitialisation', ['request' => $request]));
         // Vérification du compte : un compte désactivé ne peut pas se connecter.
+        // EF-D-04 : e-mail de réinitialisation en français.
+        // Anti-phishing : le lien est construit depuis APP_URL (configuration),
+        // jamais depuis l'en-tête Host de la requête, que l'attaquant contrôle.
+        ResetPassword::toMailUsing(function (User $notifiable, string $token): MailMessage {
+            $lien = rtrim((string) config('app.url'), '/').route('password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false);
+
+            return (new MailMessage)
+                ->subject('Réinitialisation de votre mot de passe')
+                ->greeting('Bonjour,')
+                ->line('Vous avez demandé à choisir un nouveau mot de passe pour le logiciel de gestion des Jardins de Cocagne.')
+                ->action('Choisir un nouveau mot de passe', $lien)
+                ->line("Ce lien est valable 60 minutes et ne fonctionne qu'une seule fois.")
+                ->line("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe actuel reste valable.")
+                ->salutation('Les Jardins de Cocagne');
+        });
         // Même message d'erreur dans tous les cas : on ne révèle pas si l'adresse existe.
         Fortify::authenticateUsing(function (Request $request): ?User {
             $email = Str::lower((string) $request->input(Fortify::username()));
