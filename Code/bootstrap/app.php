@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthentifierBoitier;
 use App\Http\Middleware\DefinirStructureCourante;
+use App\Http\Middleware\EntetesSecurite;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ENF-SEC-01 : en-têtes de sécurité sur toutes les réponses.
+        $middleware->append(EntetesSecurite::class);
+
         $middleware->web(append: [DefinirStructureCourante::class]);
 
         // La structure doit être connue avant la liaison des modèles aux routes.
