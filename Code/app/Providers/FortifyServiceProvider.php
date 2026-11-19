@@ -52,7 +52,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::requestPasswordResetLinkView(fn () => view('auth.mot-de-passe-oublie'));
         // EF-D-04 : formulaire du nouveau mot de passe (lien reçu par e-mail).
         Fortify::resetPasswordView(fn (Request $request) => view('auth.reinitialisation', ['request' => $request]));
-        // Vérification du compte : un compte désactivé ne peut pas se connecter.
+
         // EF-D-04 : e-mail de réinitialisation en français.
         // Anti-phishing : le lien est construit depuis APP_URL (configuration),
         // jamais depuis l'en-tête Host de la requête, que l'attaquant contrôle.
@@ -71,8 +71,15 @@ class FortifyServiceProvider extends ServiceProvider
                 ->line("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe actuel reste valable.")
                 ->salutation('Les Jardins de Cocagne');
         });
+
+        // Vérification du compte : un compte désactivé ne peut pas se connecter.
         // Même message d'erreur dans tous les cas : on ne révèle pas si l'adresse existe.
         Fortify::authenticateUsing(function (Request $request): ?User {
+            // EF-D-10 : pas de connexion longue durée. Le champ « remember » est
+            // ignoré même s'il est envoyé à la main : une session ne doit
+            // jamais dépasser 12 heures.
+            $request->merge(['remember' => false]);
+
             $email = Str::lower((string) $request->input(Fortify::username()));
             $blocage = app(BlocageComptes::class);
 
