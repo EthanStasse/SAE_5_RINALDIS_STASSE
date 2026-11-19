@@ -63,4 +63,22 @@ class User extends Authenticatable
     {
         return $this->structureIds()->contains($structureId);
     }
+
+    /**
+     * EF-D-10 : un compte qui a au moins un rôle autre qu'« adherent », dans
+     * n'importe quel Jardin, est du personnel (règle la plus stricte).
+     */
+    public function estPersonnel(): bool
+    {
+        $roles = config('permission.table_names.roles');
+        $pivot = config('permission.table_names.model_has_roles');
+        $cleRole = config('permission.column_names.role_pivot_key') ?? 'role_id';
+
+        return DB::table($pivot)
+            ->join($roles, "{$roles}.id", '=', "{$pivot}.{$cleRole}")
+            ->where("{$pivot}.model_type", $this->getMorphClass())
+            ->where("{$pivot}.".config('permission.column_names.model_morph_key'), $this->getKey())
+            ->where("{$roles}.name", '!=', 'adherent')
+            ->exists();
+    }
 }

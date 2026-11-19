@@ -3,6 +3,7 @@
 use App\Http\Middleware\AuthentifierBoitier;
 use App\Http\Middleware\DefinirStructureCourante;
 use App\Http\Middleware\EntetesSecurite;
+use App\Http\Middleware\ExpirationSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,8 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // ENF-SEC-01 : en-têtes de sécurité sur toutes les réponses.
         $middleware->append(EntetesSecurite::class);
 
-        $middleware->web(append: [DefinirStructureCourante::class]);
-
+        // EF-D-10 : expiration des sessions, vérifiée avant de choisir le Jardin.
+        $middleware->web(append: [ExpirationSession::class, DefinirStructureCourante::class]);
         // La structure doit être connue avant la liaison des modèles aux routes.
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
