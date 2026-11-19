@@ -67,3 +67,67 @@ describe('connexion (ENF-SEC-04, EF-D-10)', function () {
         expect(cookieDeReponse($reponse, 'remember_web_'))->toBeNull();
     });
 });
+describe('expiration selon le rôle (EF-D-10)', function () {
+    beforeEach(function () {
+        $this->freezeTime();
+        $this->messageExpiration = 'Votre session a expiré. Reconnectez-vous pour continuer.';
+    });
+
+    it('déconnecte le personnel après 30 minutes sans activité', function () {
+        $equipe = compteDans($this->jardin, 'equipe');
+        $this->actingAs($equipe)->get('/accueil')->assertOk();
+
+        // Une activité à 29 minutes relance le compteur.
+        $this->travel(29)->minutes();
+        $this->get('/accueil')->assertOk();
+
+        // 31 minutes sans rien faire : déconnecté.
+        $this->travel(31)->minutes();
+        $this->get('/accueil')
+            ->assertRedirect('/login')
+            ->assertSessionHas('status', $this->messageExpiration);
+        $this->assertGuest();
+    });
+
+    it("laisse l'adhérent connecté jusqu'à 2 heures sans activité", function () {
+        $this->actingAs($this->compte)->get('/accueil')->assertOk();
+
+        $this->travel(119)->minutes();
+        $this->get('/accueil')->assertOk();
+
+        $this->travel(121)->minutes();
+        $this->get('/accueil')->assertRedirect('/login');
+        $this->assertGuest();
+    });
+
+    it('applique la règle du personnel à un adhérent qui est aussi bénévole', function () {
+        setPermissionsTeamId($this->jardin->id);
+        $this->compte->assignRole('benevole');
+        setPermissionsTeamId(null);
+
+        $this->actingAs($this->compte)->get('/accueil')->assertOk();
+
+        $this->travel(31)->minutes();
+        $this->get('/accueil')->assertRedirect('/login');
+        $this->assertGuest();
+    });
+
+    it('déconnecte au bout de 12 heures, même avec une activité continue', function () {
+        $this->actingAs($this->compte)->get('/accueil')->assertOk();
+
+        // Une activité chaque heure pendant 11 h 59.
+        foreach (range(1, 11) as $heure) {
+            $this->travel(60)->minutes();
+            $this->get('/accueil')->assertOk();
+        }
+        $this->travel(59)->minutes();
+        $this->get('/accueil')->assertOk();
+
+        // 12 h 01 après la connexion : déconnecté, malgré l'activité.
+        $this->travel(2)->minutes();
+        $this->get('/accueil')
+            ->assertRedirect('/login')
+            ->assertSessionHas('status', $this->messageExpiration);
+        $this->assertGuest();
+    });
+});
