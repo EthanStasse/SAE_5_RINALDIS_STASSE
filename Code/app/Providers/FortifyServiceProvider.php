@@ -7,12 +7,14 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Models\User;
+use App\Support\BlocageComptes;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 
@@ -42,12 +44,26 @@ class FortifyServiceProvider extends ServiceProvider
         // Vérification du compte : un compte désactivé ne peut pas se connecter.
         // Même message d'erreur dans tous les cas : on ne révèle pas si l'adresse existe.
         Fortify::authenticateUsing(function (Request $request): ?User {
-            $user = User::where('email', Str::lower((string) $request->input(Fortify::username())))->first();
+            $email = Str::lower((string) $request->input(Fortify::username()));
+            $blocage = app(BlocageComptes::class);
+
+            // EF-D-06 : adresse bloquée, même le bon mot de passe est refusé.
+            // EF-D-07 : même message que l'adresse existe ou non.
+            if ($blocage->estBloque($email)) {
+                throw ValidationException::withMessages([
+                    Fortify::username() => __('auth.blocked', ['minutes' => $blocage->minutesRestantes($email)]),
+                ]);
+            }
+
+            $user = User::where('email', $email)->first();
 
             if ($user === null || ! $user->actif || ! Hash::check((string) $request->input('password'), $user->password)) {
+                $blocage->enregistrerEchec($email);
+
                 return null;
             }
 
+            $blocage->reinitialiser($email);
             $user->forceFill(['derniere_connexion_at' => now()])->save();
 
             return $user;
