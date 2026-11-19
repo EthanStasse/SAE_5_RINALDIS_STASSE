@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+      // ENF-SEC-04 : cookie envoyé seulement en HTTPS. Activé par défaut en
+    // production ; en local (http://localhost:8080), il reste désactivé.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
