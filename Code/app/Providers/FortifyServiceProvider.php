@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Http\Responses\LienReinitialisationDemande;
 use App\Models\User;
 use App\Support\BlocageComptes;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -16,6 +17,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -25,7 +28,10 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // EF-D-07 : la demande de lien répond toujours la même chose, que
+        // l'adresse ait un compte ou non (remplace les deux réponses de Fortify).
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, LienReinitialisationDemande::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, LienReinitialisationDemande::class);
     }
 
     /**
@@ -40,6 +46,8 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
         Fortify::loginView(fn () => view('auth.connexion'));
+        // EF-D-04 : demande du lien de réinitialisation.
+        Fortify::requestPasswordResetLinkView(fn () => view('auth.mot-de-passe-oublie'));
 
         // Vérification du compte : un compte désactivé ne peut pas se connecter.
         // Même message d'erreur dans tous les cas : on ne révèle pas si l'adresse existe.
