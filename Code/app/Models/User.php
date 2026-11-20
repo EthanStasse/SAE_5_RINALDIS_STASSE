@@ -58,7 +58,9 @@ class User extends Authenticatable
     protected static function booted(): void
     {
         static::updated(function (User $user): void {
-            if ($user->wasChanged('password')) {
+            // Pas d'alerte à l'activation (EF-D-02) : c'est un premier choix, pas un
+            // changement. On la reconnaît à email_verified_at, rempli au même moment.
+            if ($user->wasChanged('password') && ! $user->wasChanged('email_verified_at')) {
                 $user->notify(new MotDePasseModifie(now()->timezone('Europe/Paris')->format('d/m/Y à H\hi')));
             }
         });

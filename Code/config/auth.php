@@ -99,6 +99,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // EF-D-02 : liens d'activation des comptes créés par l'équipe. Même mécanisme
+        // que le mot de passe oublié (jeton aléatoire, stocké haché, usage unique),
+        // mais valable 72 heures : un adhérent n'ouvre pas forcément ses e-mails dans l'heure.
+        'activations' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 72 * 60,
+            'throttle' => 0,
+        ],
     ],
 
     /*
