@@ -16,8 +16,9 @@ Socle technique : Laravel (PHP 8.3), PostgreSQL 16, Docker. Plusieurs Jardins (s
 ./demarrer.sh
 ```
 
-Le script crée le squelette Laravel autour de nos fichiers, installe les paquets, configure `.env`, active les rôles par structure, crée la base, charge les données de démonstration et lance les tests. Comptez 5 à 10 minutes la première fois.
-Si le démarrage est interrompu, relancez `./demarrer.sh` : le script vérifie la présence de `vendor/autoload.php` et réinstalle les dépendances si l'installation précédente était incomplète.
+Le script crée le squelette Laravel autour de nos fichiers, installe les dépendances PHP et front-end, configure `.env`, prépare la base, charge les données de démonstration, lance les tests et compile les assets Vite. Comptez 5 à 10 minutes la première fois.
+Si le démarrage est interrompu, relancez `./demarrer.sh` : le script reprend les installations incomplètes sans réinstaller les dépendances déjà présentes.
+Les dépendances PHP et Node sont stockées dans des volumes Docker séparés, plutôt que sur le dossier partagé avec Windows, pour éviter les installations extrêmement lentes.
 
 Ensuite, **committez tout** (dont `composer.json` et `composer.lock`) et poussez sur GitHub. Le fichier `.env` reste local (il est dans `.gitignore`).
 
@@ -40,13 +41,22 @@ git clone <dépôt> && cd <dépôt>
 | Analyse statique | `docker compose exec app ./vendor/bin/phpstan analyse --memory-limit=1G` |
 | Repartir d'une base propre | `docker compose exec app php artisan migrate:fresh --seed` |
 | Lancer la surveillance des serres à la main | `docker compose exec app php artisan serres:surveiller` (sinon : automatique chaque minute, service `scheduler`) |
-| Compiler le CSS (Tailwind) | `docker compose run --rm node npm install` puis `docker compose run --rm node npm run build` |
+| Compiler le CSS (Tailwind) | Voir les commandes ci-dessous |
 
 | Service | Adresse |
 | --- | --- |
 | Application | http://localhost:8080 |
 | E-mails envoyés (Mailpit) | http://localhost:8025 |
 | PostgreSQL (DBeaver, pgAdmin...) | localhost:5433, base `cocagne`, utilisateur `cocagne`, mot de passe `cocagne` |
+
+Le démarrage compile automatiquement les assets. Après une modification des fichiers front-end, recompile-les ainsi :
+
+```bash
+export HOST_UID="$(id -u)"
+export HOST_GID="$(id -g)"
+docker compose run --rm node npm run build
+```
+Après une modification de `package.json` ou `package-lock.json`, lance d'abord `docker compose run --rm node npm ci`, puis la commande de compilation ci-dessus.
 
 ## Comptes de démonstration
 
