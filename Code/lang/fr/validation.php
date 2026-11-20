@@ -9,6 +9,8 @@ return [
     'email' => 'Le champ :attribute doit être une adresse e-mail valide.',
     'string' => 'Le champ :attribute doit être un texte.',
     'confirmed' => 'La confirmation du champ :attribute ne correspond pas.',
+    'unique' => 'Cette :attribute est déjà utilisée par un compte.',
+    'in' => "La valeur choisie pour le champ :attribute n'est pas autorisée.",
     'min' => [
         'string' => 'Le champ :attribute doit contenir au moins :min caractères.',
     ],
@@ -27,5 +29,6 @@ return [
         'email' => 'adresse e-mail',
         'password' => 'mot de passe',
         'name' => 'nom',
+        'role' => 'rôle',
     ],
 ];

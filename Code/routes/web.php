@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CompteController;
 use App\Http\Controllers\SerreController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,14 @@ Route::middleware('auth')->group(function () {
 
     // EF-D-14 : page adhérent minimale (coordonnées, changement de mot de passe).
     Route::view('/mon-compte', 'compte.mon-compte')->name('mon-compte');
+
+    // EF-D-02 : création d'un compte par l'équipe (lien d'activation par e-mail).
+    Route::get('/comptes/nouveau', [CompteController::class, 'create'])
+        ->middleware('can:gerer-comptes')
+        ->name('comptes.create');
+    Route::post('/comptes', [CompteController::class, 'store'])
+        ->middleware('can:gerer-comptes')
+        ->name('comptes.store');
     Route::view('/alertes', 'alertes.index')->middleware('can:voir-serres')->name('alertes.index');
     Route::view('/serres', 'serres.index')->middleware('can:voir-serres')->name('serres.index');
     Route::get('/serres/{serre}', [SerreController::class, 'show'])->middleware('can:voir-serres')->name('serres.show');
