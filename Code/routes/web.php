@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CompteController;
+use App\Http\Controllers\JournalConnexionController;
 use App\Http\Controllers\SerreController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/comptes', [CompteController::class, 'store'])
         ->middleware('can:gerer-comptes')
         ->name('comptes.store');
+
+    // EF-D-11 : journal des connexions, réservé aux administrateurs (voir-audit).
+    Route::get('/securite/journal-connexions', JournalConnexionController::class)
+        ->middleware('can:voir-audit')
+        ->name('journal-connexions');
+
     Route::view('/alertes', 'alertes.index')->middleware('can:voir-serres')->name('alertes.index');
     Route::view('/serres', 'serres.index')->middleware('can:voir-serres')->name('serres.index');
     Route::get('/serres/{serre}', [SerreController::class, 'show'])->middleware('can:voir-serres')->name('serres.show');

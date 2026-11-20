@@ -23,6 +23,10 @@
                             @endif
                         </a>
                     @endcan
+
+                                    @can('voir-audit')
+                        <a href="{{ route('journal-connexions') }}" @class(['text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('journal-connexions')])>Journal des connexions</a>
+                    @endcan
                 </nav>
 
                 <div class="flex flex-wrap items-center gap-4 text-sm">

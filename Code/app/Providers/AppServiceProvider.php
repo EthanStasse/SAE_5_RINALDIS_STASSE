@@ -3,10 +3,16 @@
 namespace App\Providers;
 
 use App\Models\Alerte;
+use App\Models\JournalConnexion;
 use App\Models\Structure;
+use App\Models\User;
 use App\Support\StructureCourante;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +33,19 @@ class AppServiceProvider extends ServiceProvider
             ->mixedCase()
             ->numbers()
             ->symbols());
+
+        // EF-D-11 : journal des connexions, à partir des événements de Laravel.
+        // Connexion complète : après le code 2FA pour un administrateur.
+        Event::listen(function (Login $evenement): void {
+            JournalConnexion::noter(JournalConnexion::REUSSIE, (int) $evenement->user->getAuthIdentifier());
+        });
+        // Échec : on retrouve le compte visé par l'adresse saisie, sans garder l'adresse.
+        Event::listen(function (Failed $evenement): void {
+            $email = Str::lower((string) ($evenement->credentials['email'] ?? ''));
+            $userId = User::query()->where('email', $email)->value('id');
+
+            JournalConnexion::noter(JournalConnexion::ECHOUEE, $userId === null ? null : (int) $userId);
+        });
 
         // Le Jardin courant est affiché dans l'en-tête de toutes les pages.
         View::composer(['components.layouts.app', 'accueil'], function ($view): void {

@@ -34,7 +34,11 @@ class BlocageComptes
         return max(1, (int) ceil(($fin - now()->getTimestamp()) / 60));
     }
 
-    public function enregistrerEchec(string $email): void
+    /**
+     * Enregistre un échec. Renvoie true si cet échec vient de bloquer l'adresse
+     * (pour l'écrire dans le journal des connexions, EF-D-11).
+     */
+    public function enregistrerEchec(string $email): bool
     {
         $echecs = RateLimiter::hit($this->cleEchecs($email), self::DUREE_MINUTES * 60);
 
@@ -43,7 +47,11 @@ class BlocageComptes
             $fin = now()->addMinutes(self::DUREE_MINUTES);
             Cache::put($this->cleBlocage($email), $fin->getTimestamp(), $fin);
             RateLimiter::clear($this->cleEchecs($email));
+
+            return true;
         }
+
+        return false;
     }
 
     public function reinitialiser(string $email): void
