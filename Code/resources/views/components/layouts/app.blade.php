@@ -25,6 +25,9 @@
                     @endcan
 
                                     @can('voir-audit')
+                                                        @can('gerer-comptes')
+                        <a href="{{ route('comptes.create') }}" @class(['text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('comptes.*')])>Créer un compte</a>
+                    @endcan
                         <a href="{{ route('journal-connexions') }}" @class(['text-sm hover:text-green-800', 'font-semibold text-green-800' => request()->routeIs('journal-connexions')])>Journal des connexions</a>
                     @endcan
                 </nav>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivationController;
 use App\Http\Controllers\CompteController;
 use App\Http\Controllers\JournalConnexionController;
 use App\Http\Controllers\SerreController;
@@ -7,6 +8,12 @@ use Illuminate\Support\Facades\Route;
 
 // Pas de page publique : un visiteur est envoyé vers la connexion.
 Route::redirect('/', '/accueil');
+
+// EF-D-02 : activation d'un compte depuis le lien reçu par e-mail (personne non connectée).
+Route::middleware('guest')->group(function () {
+    Route::get('/activation/{token}', [ActivationController::class, 'show'])->name('activation.show');
+    Route::post('/activation', [ActivationController::class, 'store'])->name('activation.store');
+});
 
 Route::middleware('auth')->group(function () {
     Route::view('/accueil', 'accueil')->name('accueil');

@@ -10,4 +10,7 @@ return [
     'expired' => 'Votre session a expiré. Reconnectez-vous pour continuer.',
     // EF-D-03 : ancien mot de passe faux lors d'un changement.
     'current_password' => 'Le mot de passe actuel est incorrect.',
+    // EF-D-02 : activation du compte. EF-D-07 : un seul message d'erreur.
+    'activated' => 'Votre compte est activé. Vous pouvez vous connecter.',
+    'activation_invalid' => "Ce lien d'activation est invalide ou a expiré. Demandez-en un nouveau à l'équipe de votre Jardin.",
 ];
