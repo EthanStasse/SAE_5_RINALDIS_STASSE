@@ -53,4 +53,15 @@ class JournalConnexion extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /** Libellé en français, pour la page de consultation. */
+    public function libelle(): string
+    {
+        return match ($this->evenement) {
+            self::REUSSIE => 'Connexion réussie',
+            self::ECHOUEE => 'Connexion échouée',
+            self::BLOCAGE => 'Compte bloqué 15 min',
+            default => $this->evenement,
+        };
+    }
 }
