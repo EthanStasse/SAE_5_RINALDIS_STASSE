@@ -9,7 +9,9 @@
 use App\Models\Structure;
 use App\Models\User;
 use App\Notifications\ActivationCompte;
+use App\Notifications\MotDePasseModifie;
 use Database\Seeders\RolesEtPermissionsSeeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -98,5 +100,101 @@ describe("création du compte par l'équipe (EF-D-02)", function () {
 
         creerCompte(['role' => 'admin-reseau'])->assertSessionHasErrors('role');
         expect(User::query()->where('email', 'camille@cocagne.test')->exists())->toBeFalse();
+    });
+});
+describe('activation par le lien reçu (EF-D-02, US-D1)', function () {
+    beforeEach(function () {
+        // L'administrateur crée le compte, puis se déconnecte :
+        // la personne ouvre ensuite le lien de chez elle.
+        $this->actingAs($this->admin);
+        creerCompte();
+        $this->nouveau = User::query()->where('email', 'camille@cocagne.test')->sole();
+
+        Notification::assertSentTo($this->nouveau, ActivationCompte::class, function (ActivationCompte $notification) {
+            $this->lien = $notification->toMail($this->nouveau)->actionUrl;
+
+            return true;
+        });
+        $this->post('/logout');
+
+        $this->messageLienInvalide = "Ce lien d'activation est invalide ou a expiré. Demandez-en un nouveau à l'équipe de votre Jardin.";
+    });
+
+    /** Envoie le formulaire d'activation avec le jeton et l'adresse du lien reçu. */
+    function activer(string $lien, string $motDePasse, ?string $email = null)
+    {
+        parse_str((string) parse_url($lien, PHP_URL_QUERY), $parametres);
+
+        return test()->post('/activation', [
+            'token' => basename((string) parse_url($lien, PHP_URL_PATH)),
+            'email' => $email ?? $parametres['email'],
+            'password' => $motDePasse,
+            'password_confirmation' => $motDePasse,
+        ]);
+    }
+
+    it('affiche la page depuis le lien reçu', function () {
+        $this->get($this->lien)
+            ->assertOk()
+            ->assertSee('Activer mon compte')
+            ->assertSee('camille@cocagne.test');
+    });
+
+    it('active le compte : le mot de passe choisi permet ensuite de se connecter (US-D1)', function () {
+        activer($this->lien, 'Mon-Jardin-Bio-2026')
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/login')
+            ->assertSessionHas('status', 'Votre compte est activé. Vous pouvez vous connecter.');
+
+        expect($this->nouveau->fresh()->email_verified_at)->not->toBeNull();
+
+        $this->post('/login', ['email' => 'camille@cocagne.test', 'password' => 'Mon-Jardin-Bio-2026'])
+            ->assertRedirect('/accueil');
+        $this->assertAuthenticatedAs($this->nouveau);
+    });
+
+    it("n'envoie pas l'alerte « mot de passe modifié » à l'activation (EF-D-12)", function () {
+        activer($this->lien, 'Mon-Jardin-Bio-2026')->assertSessionHasNoErrors();
+
+        Notification::assertNotSentTo($this->nouveau, MotDePasseModifie::class);
+    });
+
+    it('refuse un lien déjà utilisé (usage unique)', function () {
+        activer($this->lien, 'Mon-Jardin-Bio-2026');
+
+        activer($this->lien, 'Pirate-Mot-De-Passe-2026')
+            ->assertSessionHasErrors(['email' => $this->messageLienInvalide]);
+        expect(Hash::check('Mon-Jardin-Bio-2026', $this->nouveau->fresh()->password))->toBeTrue();
+    });
+
+    it('accepte encore un lien de 71 heures', function () {
+        $this->travel(71)->hours();
+
+        activer($this->lien, 'Mon-Jardin-Bio-2026')->assertSessionHasNoErrors();
+    });
+
+    it('refuse un lien de plus de 72 heures', function () {
+        $this->travel(73)->hours();
+
+        activer($this->lien, 'Mon-Jardin-Bio-2026')
+            ->assertSessionHasErrors(['email' => $this->messageLienInvalide]);
+        expect($this->nouveau->fresh()->email_verified_at)->toBeNull();
+    });
+
+    it('refuse un jeton inventé', function () {
+        activer('http://localhost/activation/'.str_repeat('a', 64).'?email=camille@cocagne.test', 'Mon-Jardin-Bio-2026')
+            ->assertSessionHasErrors(['email' => $this->messageLienInvalide]);
+    });
+
+    it('donne le même message pour une adresse sans compte (EF-D-07)', function () {
+        activer($this->lien, 'Mon-Jardin-Bio-2026', 'inconnu@cocagne.test')
+            ->assertSessionHasErrors(['email' => $this->messageLienInvalide]);
+    });
+
+    it('applique la politique de mot de passe, sans consommer le lien (EF-D-05)', function () {
+        activer($this->lien, 'jardin')->assertSessionHasErrors('password');
+        expect($this->nouveau->fresh()->email_verified_at)->toBeNull();
+
+        activer($this->lien, 'Mon-Jardin-Bio-2026')->assertSessionHasNoErrors();
     });
 });
