@@ -166,6 +166,14 @@ return [
         // de la structure (CDC module D).
         // EF-D-04 : mot de passe oublié, lien valable 60 minutes (config/auth.php).
         Features::resetPasswords(),
+        // EF-D-08 : double authentification (TOTP).
+        // confirm : la 2FA n'est active qu'après un premier code correct (pas de compte
+        // bloqué par un QR code mal scanné). confirmPassword : le mot de passe est
+        // redemandé avant de l'activer ou de la désactiver.
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+        ]),
     ],
 
 ];

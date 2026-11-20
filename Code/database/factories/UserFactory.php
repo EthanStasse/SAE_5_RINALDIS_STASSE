@@ -42,4 +42,16 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * EF-D-08 : double authentification activée et confirmée (secret de test fixe).
+     */
+    public function avecDoubleAuthentification(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => encrypt('JBSWY3DPEHPK3PXP'),
+            'two_factor_recovery_codes' => encrypt(json_encode(['secours-test-0001'])),
+            'two_factor_confirmed_at' => now(),
+        ]);
+    }
 }
