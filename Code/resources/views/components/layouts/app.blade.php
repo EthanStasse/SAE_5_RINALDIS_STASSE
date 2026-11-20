@@ -29,7 +29,10 @@
                     @if ($structureCourante)
                         <span class="rounded-full bg-green-50 px-3 py-1 text-green-800">{{ $structureCourante->nom_commercial }}</span>
                     @endif
-                    <span>{{ auth()->user()->name }}</span>
+                                        {{-- EF-D-14 : accès à Mon compte depuis toutes les pages. --}}
+                    <a href="{{ route('mon-compte') }}" class="hover:text-green-800" title="Mon compte">
+                        {{ auth()->user()->name }} · <span class="underline">Mon compte</span>
+                    </a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="text-stone-600 underline hover:text-stone-900">Se déconnecter</button>
