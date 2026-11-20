@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -18,6 +20,8 @@ use Illuminate\Support\Carbon;
  */
 class JournalConnexion extends Model
 {
+    use MassPrunable;
+
     public const REUSSIE = 'connexion_reussie';
 
     public const ECHOUEE = 'connexion_echouee';
@@ -63,5 +67,18 @@ class JournalConnexion extends Model
             self::BLOCAGE => 'Compte bloqué 15 min',
             default => $this->evenement,
         };
+    }
+
+    /** ENF-RGPD : durée de conservation du journal. */
+    public const DUREE_CONSERVATION_MOIS = 12;
+
+    /**
+     * ENF-RGPD : lignes à supprimer (php artisan model:prune, planifié chaque nuit).
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        return static::query()->where('created_at', '<', now()->subMonths(self::DUREE_CONSERVATION_MOIS));
     }
 }
