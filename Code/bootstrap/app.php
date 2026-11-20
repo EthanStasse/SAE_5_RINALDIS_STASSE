@@ -3,6 +3,7 @@
 use App\Http\Middleware\AuthentifierBoitier;
 use App\Http\Middleware\DefinirStructureCourante;
 use App\Http\Middleware\EntetesSecurite;
+use App\Http\Middleware\ExigerDoubleAuthentification;
 use App\Http\Middleware\ExpirationSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,8 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(EntetesSecurite::class);
 
         // EF-D-10 : expiration des sessions, vérifiée avant de choisir le Jardin.
-        $middleware->web(append: [ExpirationSession::class, DefinirStructureCourante::class]);
-        // La structure doit être connue avant la liaison des modèles aux routes.
+        // EF-D-10 : expiration des sessions ; EF-D-08 : 2FA obligatoire pour les administrateurs.
+        $middleware->web(append: [ExpirationSession::class, DefinirStructureCourante::class, ExigerDoubleAuthentification::class]);        // La structure doit être connue avant la liaison des modèles aux routes.
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
             prepend: DefinirStructureCourante::class,

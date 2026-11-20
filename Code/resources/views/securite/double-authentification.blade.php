@@ -6,6 +6,10 @@
     <div class="mx-auto max-w-xl space-y-6 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <h1 class="text-xl font-semibold">Double authentification</h1>
 
+        @if (session('avertissement'))
+            <p class="rounded-md border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm" role="alert">{{ session('avertissement') }}</p>
+        @endif
+        
         @if (! $compte->two_factor_secret)
             {{-- 1. Pas encore activée --}}
             <p class="text-sm text-stone-600">

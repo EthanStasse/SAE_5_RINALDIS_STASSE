@@ -73,10 +73,12 @@ class User extends Authenticatable
     }
 
     /**
-     * EF-D-10 : un compte qui a au moins un rôle autre qu'« adherent », dans
-     * n'importe quel Jardin, est du personnel (règle la plus stricte).
+     * Noms des rôles du compte, tous Jardins confondus. hasRole() ne regarde
+     * que le Jardin courant (mode « teams ») : il ne suffit pas ici.
+     *
+     * @return Collection<int, string>
      */
-    public function estPersonnel(): bool
+    public function nomsDeRoles(): Collection
     {
         $roles = config('permission.table_names.roles');
         $pivot = config('permission.table_names.model_has_roles');
@@ -86,7 +88,26 @@ class User extends Authenticatable
             ->join($roles, "{$roles}.id", '=', "{$pivot}.{$cleRole}")
             ->where("{$pivot}.model_type", $this->getMorphClass())
             ->where("{$pivot}.".config('permission.column_names.model_morph_key'), $this->getKey())
-            ->where("{$roles}.name", '!=', 'adherent')
-            ->exists();
+            ->distinct()
+            ->pluck("{$roles}.name")
+            ->map(fn ($nom): string => (string) $nom)
+            ->values();
+    }
+
+    /**
+     * EF-D-10 : un compte qui a au moins un rôle autre qu'« adherent », dans
+     * n'importe quel Jardin, est du personnel (règle la plus stricte).
+     */
+    public function estPersonnel(): bool
+    {
+        return $this->nomsDeRoles()->contains(fn (string $nom): bool => $nom !== 'adherent');
+    }
+
+    /**
+     * EF-D-08 : administrateur d'un Jardin ou du réseau, dans n'importe quel Jardin.
+     */
+    public function estAdministrateur(): bool
+    {
+        return $this->nomsDeRoles()->intersect(['admin-reseau', 'admin-structure'])->isNotEmpty();
     }
 }
