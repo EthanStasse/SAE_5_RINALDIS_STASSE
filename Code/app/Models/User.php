@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\MotDePasseModifie;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -47,6 +48,20 @@ class User extends Authenticatable
             'password' => 'hashed',
             'actif' => 'boolean',
         ];
+    }
+
+    /**
+     * EF-D-12 : un e-mail part à chaque changement de mot de passe, quel que soit
+     * le chemin (Mon compte, mot de passe oublié...). Accroché au modèle pour
+     * qu'aucun chemin, actuel ou futur, ne puisse l'oublier.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('password')) {
+                $user->notify(new MotDePasseModifie(now()->timezone('Europe/Paris')->format('d/m/Y à H\hi')));
+            }
+        });
     }
 
     /**
