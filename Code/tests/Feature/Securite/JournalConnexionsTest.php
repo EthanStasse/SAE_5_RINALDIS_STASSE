@@ -4,10 +4,12 @@
  * EF-D-11 : journal des connexions réussies, échouées et des blocages.
  * ENF-RGPD : données minimales (ni adresse e-mail saisie, ni mot de passe).
  */
+
 use App\Models\JournalConnexion;
 use App\Models\Structure;
 use App\Models\User;
 use Database\Seeders\RolesEtPermissionsSeeder;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use PragmaRX\Google2FA\Google2FA;
@@ -171,9 +173,16 @@ describe('conservation 12 mois (ENF-RGPD)', function () {
     });
 
     it('purge automatiquement chaque nuit à 3 h', function () {
+        // schedule:list charge la planification de routes/console.php.
         $this->artisan('schedule:list')
             ->expectsOutputToContain('model:prune')
-            ->expectsOutputToContain('0 3 * * *')
             ->assertSuccessful();
+
+        $purge = collect(app(Schedule::class)->events())
+            ->first(fn ($evenement) => str_contains((string) $evenement->command, 'model:prune'));
+
+        expect($purge)->not->toBeNull()
+            ->and((string) $purge->command)->toContain('JournalConnexion')
+            ->and($purge->expression)->toBe('0 3 * * *');
     });
 });
