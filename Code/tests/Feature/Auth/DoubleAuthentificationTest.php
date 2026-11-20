@@ -117,3 +117,65 @@ describe('force brute sur le code (EF-D-08)', function () {
         $this->post('/two-factor-challenge', ['code' => '000000'])->assertTooManyRequests();
     });
 });
+describe('activation (EF-D-08)', function () {
+    beforeEach(function () {
+        // Un administrateur qui n'a pas encore de double authentification.
+        $this->nouvelAdmin = compteDans($this->jardin, 'admin-structure');
+    });
+
+    it('refuse la page aux visiteurs', function () {
+        $this->get('/securite/double-authentification')->assertRedirect('/login');
+    });
+
+    it("redemande le mot de passe avant d'activer", function () {
+        $this->actingAs($this->nouvelAdmin)
+            ->post('/user/two-factor-authentication')
+            ->assertRedirect('/user/confirm-password');
+
+        expect($this->nouvelAdmin->fresh()->two_factor_secret)->toBeNull();
+
+        $this->get('/user/confirm-password')
+            ->assertOk()
+            ->assertSee('Confirmez votre mot de passe');
+    });
+
+    it('affiche le QR code et la clé, le secret étant stocké chiffré', function () {
+        $this->actingAs($this->nouvelAdmin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->post('/user/two-factor-authentication');
+
+        $enBase = $this->nouvelAdmin->fresh()->two_factor_secret;
+        $secret = decrypt($enBase);
+        expect($enBase)->not->toContain($secret);
+
+        $this->get('/securite/double-authentification')
+            ->assertOk()
+            ->assertSee('<svg', false)
+            ->assertSee('Clé à saisir à la main')
+            ->assertSee($secret);
+    });
+
+    it("n'active la 2FA qu'après un premier code correct, puis montre les codes de secours", function () {
+        $this->actingAs($this->nouvelAdmin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->post('/user/two-factor-authentication');
+        $compte = $this->nouvelAdmin->fresh();
+        expect($compte->two_factor_confirmed_at)->toBeNull();
+
+        // Un code faux ne confirme rien.
+        $this->post('/user/confirmed-two-factor-authentication', ['code' => '000000'])
+            ->assertSessionHasErrorsIn('confirmTwoFactorAuthentication', ['code' => $this->messageCodeInvalide]);
+        expect($compte->fresh()->two_factor_confirmed_at)->toBeNull();
+
+        // Le bon code confirme l'activation.
+        $this->from('/securite/double-authentification')
+            ->post('/user/confirmed-two-factor-authentication', ['code' => codeDuTelephone(decrypt($compte->two_factor_secret))])
+            ->assertRedirect('/securite/double-authentification');
+        expect($compte->fresh()->two_factor_confirmed_at)->not->toBeNull();
+
+        $this->get('/securite/double-authentification')
+            ->assertSee('La double authentification est activée')
+            ->assertSee('Codes de secours')
+            ->assertSee($compte->fresh()->recoveryCodes()[0]);
+    });
+});
