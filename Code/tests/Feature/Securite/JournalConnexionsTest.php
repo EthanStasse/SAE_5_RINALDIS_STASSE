@@ -98,3 +98,53 @@ describe('données minimales (ENF-RGPD)', function () {
         expect(json_encode(JournalConnexion::query()->get()->toArray()))->not->toContain('Mauvais-Mot-2026');
     });
 });
+describe('consultation (EF-D-11)', function () {
+    beforeEach(function () {
+        $this->autreJardin = Structure::factory()->create();
+        $this->compteAutreJardin = compteDans($this->autreJardin, 'adherent');
+
+        // Une ligne par cas, chacune avec une adresse IP reconnaissable.
+        JournalConnexion::query()->create(['user_id' => $this->compte->id, 'evenement' => JournalConnexion::REUSSIE, 'ip' => '203.0.113.1']);
+        JournalConnexion::query()->create(['user_id' => $this->compteAutreJardin->id, 'evenement' => JournalConnexion::BLOCAGE, 'ip' => '203.0.113.2']);
+        JournalConnexion::query()->create(['user_id' => null, 'evenement' => JournalConnexion::ECHOUEE, 'ip' => '203.0.113.3']);
+    });
+
+    it('refuse la page aux visiteurs', function () {
+        $this->get('/securite/journal-connexions')->assertRedirect('/login');
+    });
+
+    it("refuse la page à l'équipe et aux adhérents", function (string $role) {
+        $this->actingAs(compteDans($this->jardin, $role))
+            ->get('/securite/journal-connexions')
+            ->assertForbidden();
+    })->with(['equipe', 'adherent']);
+
+    it("montre à l'administrateur d'un Jardin les connexions de son Jardin seulement", function () {
+        $this->actingAs(compteDans($this->jardin, 'admin-structure'))
+            ->get('/securite/journal-connexions')
+            ->assertOk()
+            ->assertSee('Journal des connexions')
+            ->assertSee($this->compte->name)
+            ->assertSee('Connexion réussie')
+            ->assertSee('203.0.113.1')
+            ->assertDontSee('203.0.113.2')   // compte d'un autre Jardin
+            ->assertDontSee('203.0.113.3');  // adresse inconnue
+    });
+
+    it("montre tout à l'administrateur du réseau, y compris les adresses inconnues", function () {
+        $this->actingAs(compteDans($this->jardin, 'admin-reseau'))
+            ->get('/securite/journal-connexions')
+            ->assertOk()
+            ->assertSee('203.0.113.1')
+            ->assertSee('203.0.113.2')
+            ->assertSee('Compte bloqué')
+            ->assertSee('203.0.113.3')
+            ->assertSee('Adresse inconnue');
+    });
+
+    it('est accessible depuis le menu des administrateurs', function () {
+        $this->actingAs(compteDans($this->jardin, 'admin-structure'))
+            ->get('/accueil')
+            ->assertSee('Journal des connexions');
+    });
+});
