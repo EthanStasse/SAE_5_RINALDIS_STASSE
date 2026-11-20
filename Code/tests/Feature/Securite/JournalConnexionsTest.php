@@ -4,11 +4,11 @@
  * EF-D-11 : journal des connexions réussies, échouées et des blocages.
  * ENF-RGPD : données minimales (ni adresse e-mail saisie, ni mot de passe).
  */
-
 use App\Models\JournalConnexion;
 use App\Models\Structure;
 use App\Models\User;
 use Database\Seeders\RolesEtPermissionsSeeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -146,5 +146,34 @@ describe('consultation (EF-D-11)', function () {
         $this->actingAs(compteDans($this->jardin, 'admin-structure'))
             ->get('/accueil')
             ->assertSee('Journal des connexions');
+    });
+});
+describe('conservation 12 mois (ENF-RGPD)', function () {
+    /** Crée une ligne de journal datée de $date. */
+    function ligneDatee(Carbon $date): JournalConnexion
+    {
+        $ligne = JournalConnexion::query()->create(['user_id' => null, 'evenement' => JournalConnexion::ECHOUEE, 'ip' => '203.0.113.50']);
+        $ligne->forceFill(['created_at' => $date])->save();
+
+        return $ligne;
+    }
+
+    it('supprime les lignes de plus de 12 mois et garde les autres', function () {
+        $this->freezeTime();
+        $tropVieille = ligneDatee(now()->subMonths(12)->subDay());
+        $encoreGardee = ligneDatee(now()->subMonths(12)->addDay());
+
+        $this->artisan('model:prune', ['--model' => [JournalConnexion::class]])->assertSuccessful();
+
+        expect(JournalConnexion::query()->pluck('id'))
+            ->not->toContain($tropVieille->id)
+            ->toContain($encoreGardee->id);
+    });
+
+    it('purge automatiquement chaque nuit à 3 h', function () {
+        $this->artisan('schedule:list')
+            ->expectsOutputToContain('model:prune')
+            ->expectsOutputToContain('0 3 * * *')
+            ->assertSuccessful();
     });
 });
