@@ -52,7 +52,8 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::requestPasswordResetLinkView(fn () => view('auth.mot-de-passe-oublie'));
         // EF-D-04 : formulaire du nouveau mot de passe (lien reçu par e-mail).
         Fortify::resetPasswordView(fn (Request $request) => view('auth.reinitialisation', ['request' => $request]));
-
+        // EF-D-08 : deuxième étape de la connexion (code TOTP ou code de secours).
+        Fortify::twoFactorChallengeView(fn () => view('auth.code-double-authentification'));
         // EF-D-04 : e-mail de réinitialisation en français.
         // Anti-phishing : le lien est construit depuis APP_URL (configuration),
         // jamais depuis l'en-tête Host de la requête, que l'attaquant contrôle.

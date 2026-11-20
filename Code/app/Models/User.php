@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -17,7 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name',
@@ -26,9 +27,15 @@ class User extends Authenticatable
         'actif',
     ];
 
+    /**
+     * Jamais renvoyés dans un tableau ou du JSON. EF-D-08 : le secret de double
+     * authentification et les codes de secours (chiffrés en base) en font partie.
+     */
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     protected function casts(): array
@@ -36,6 +43,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'derniere_connexion_at' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
             'password' => 'hashed',
             'actif' => 'boolean',
         ];
