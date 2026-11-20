@@ -55,6 +55,8 @@ class FortifyServiceProvider extends ServiceProvider
         // EF-D-08 : deuxième étape de la connexion (code TOTP ou code de secours).
         Fortify::twoFactorChallengeView(fn () => view('auth.code-double-authentification'));
         // EF-D-04 : e-mail de réinitialisation en français.
+        // Mot de passe redemandé avant une action sensible (activer la 2FA...).
+        Fortify::confirmPasswordView(fn () => view('auth.confirmation-mot-de-passe'));
         // Anti-phishing : le lien est construit depuis APP_URL (configuration),
         // jamais depuis l'en-tête Host de la requête, que l'attaquant contrôle.
         ResetPassword::toMailUsing(function (User $notifiable, string $token): MailMessage {

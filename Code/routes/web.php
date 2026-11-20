@@ -8,6 +8,10 @@ Route::redirect('/', '/accueil');
 
 Route::middleware('auth')->group(function () {
     Route::view('/accueil', 'accueil')->name('accueil');
+
+    // EF-D-08 : activation de la double authentification (QR code, codes de secours).
+    Route::view('/securite/double-authentification', 'securite.double-authentification')->name('double-authentification');
+
     Route::view('/alertes', 'alertes.index')->middleware('can:voir-serres')->name('alertes.index');
     Route::view('/serres', 'serres.index')->middleware('can:voir-serres')->name('serres.index');
     Route::get('/serres/{serre}', [SerreController::class, 'show'])->middleware('can:voir-serres')->name('serres.show');
