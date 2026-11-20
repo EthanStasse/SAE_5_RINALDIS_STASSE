@@ -174,6 +174,8 @@ return [
             'confirm' => true,
             'confirmPassword' => true,
         ]),
+        // EF-D-03 : changement du mot de passe en saisissant l'ancien.
+        Features::updatePasswords(),
     ],
 
 ];
