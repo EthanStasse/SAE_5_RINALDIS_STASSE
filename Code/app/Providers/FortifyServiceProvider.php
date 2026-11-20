@@ -7,6 +7,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Http\Responses\LienReinitialisationDemande;
+use App\Models\JournalConnexion;
 use App\Models\User;
 use App\Support\BlocageComptes;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -97,7 +98,11 @@ class FortifyServiceProvider extends ServiceProvider
             $user = User::where('email', $email)->first();
 
             if ($user === null || ! $user->actif || ! Hash::check((string) $request->input('password'), $user->password)) {
-                $blocage->enregistrerEchec($email);
+                // EF-D-11 : le blocage est écrit dans le journal (l'échec lui-même
+                // est noté par l'événement Failed, dans AppServiceProvider).
+                if ($blocage->enregistrerEchec($email)) {
+                    JournalConnexion::noter(JournalConnexion::BLOCAGE, $user?->id);
+                }
 
                 return null;
             }
