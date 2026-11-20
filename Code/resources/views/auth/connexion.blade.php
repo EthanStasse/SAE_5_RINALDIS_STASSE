@@ -28,10 +28,7 @@
                 @enderror
             </div>
 
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="remember" class="rounded border-stone-300">
-                Rester connecté
-            </label>
+            {{-- EF-D-10 : pas de case « Rester connecté » : une session ne dure jamais plus de 12 h. --}}
 
             <button type="submit" class="w-full rounded-md bg-green-800 px-4 py-2 font-medium text-white hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-700 focus:ring-offset-2">
                 Se connecter
