@@ -16,9 +16,20 @@ pest()->extend(TestCase::class)
  */
 
 /** Crée un compte ayant ce rôle dans ce Jardin. */
-function compteDans(Structure $structure, string $role): User
+/**
+ * Crée un compte ayant ce rôle dans ce Jardin.
+ * EF-D-08 : comme dans la réalité, un administrateur a sa double authentification
+ * activée ; passer $doubleAuthentification = false pour tester le cas contraire.
+ */
+function compteDans(Structure $structure, string $role, bool $doubleAuthentification = true): User
 {
-    $user = User::factory()->create();
+    $fabrique = User::factory();
+
+    if ($doubleAuthentification && in_array($role, ['admin-reseau', 'admin-structure'], true)) {
+        $fabrique = $fabrique->avecDoubleAuthentification();
+    }
+
+    $user = $fabrique->create();
     setPermissionsTeamId($structure->id);
     $user->assignRole($role);
     setPermissionsTeamId(null);

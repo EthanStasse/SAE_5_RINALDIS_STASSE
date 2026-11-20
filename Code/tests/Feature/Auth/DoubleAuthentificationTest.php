@@ -120,7 +120,7 @@ describe('force brute sur le code (EF-D-08)', function () {
 describe('activation (EF-D-08)', function () {
     beforeEach(function () {
         // Un administrateur qui n'a pas encore de double authentification.
-        $this->nouvelAdmin = compteDans($this->jardin, 'admin-structure');
+        $this->nouvelAdmin = compteDans($this->jardin, 'admin-structure', doubleAuthentification: false);
     });
 
     it('refuse la page aux visiteurs', function () {
@@ -178,4 +178,44 @@ describe('activation (EF-D-08)', function () {
             ->assertSee('Codes de secours')
             ->assertSee($compte->fresh()->recoveryCodes()[0]);
     });
+});
+describe('obligation pour les administrateurs (EF-D-08)', function () {
+    beforeEach(function () {
+        $this->adminSansCode = compteDans($this->jardin, 'admin-structure', doubleAuthentification: false);
+    });
+
+    it("renvoie un administrateur sans double authentification vers l'activation, quelle que soit la page", function (string $page) {
+        $this->actingAs($this->adminSansCode)
+            ->get($page)
+            ->assertRedirect('/securite/double-authentification')
+            ->assertSessionHas('avertissement');
+    })->with(['/accueil', '/serres', '/alertes']);
+
+    it("lui laisse la page d'activation, la confirmation du mot de passe et la déconnexion", function () {
+        $this->actingAs($this->adminSansCode);
+
+        $this->get('/securite/double-authentification')
+            ->assertOk()
+            ->assertSee('Activer la double authentification');
+        $this->get('/user/confirm-password')->assertOk();
+
+        $this->post('/logout')->assertRedirect('/');
+        $this->assertGuest();
+    });
+
+    it('applique la même règle aux administrateurs du réseau', function () {
+        $this->actingAs(compteDans($this->jardin, 'admin-reseau', doubleAuthentification: false))
+            ->get('/accueil')
+            ->assertRedirect('/securite/double-authentification');
+    });
+
+    it('laisse passer un administrateur qui a activé sa double authentification', function () {
+        $this->actingAs($this->admin)->get('/accueil')->assertOk();
+    });
+
+    it("n'impose rien au reste du personnel ni aux adhérents", function (string $role) {
+        $this->actingAs(compteDans($this->jardin, $role))
+            ->get('/accueil')
+            ->assertOk();
+    })->with(['equipe', 'insertion', 'benevole', 'adherent']);
 });
