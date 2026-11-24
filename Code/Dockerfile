@@ -2,14 +2,15 @@
 # Construction, depuis le dossier Code/ :
 #   docker build -t cocagne:local .
 #
-# Quatre étapes ; seule la dernière forme l'image livrée. Les outils de
+# Cinq étapes ; seules « production » et « web » sont livrées. Les outils de
 # construction (composer, Node, npm) n'y sont pas : image plus petite et
 # moins de logiciels exposés en cas d'attaque.
 #
 #   base       PHP 8.3 FPM + extensions (socle commun)
 #   vendor     dépendances PHP sans les paquets de développement
 #   front      compilation du CSS et du JS (Vite + Tailwind)
-#   production code + vendor + front compilé, utilisateur non root
+#   web        nginx + fichiers publics (image séparée : docker build --target web)
+#   production code + vendor + front compilé, utilisateur non root (par défaut)
 
 # --- 1. base : PHP et ses extensions -----------------------------------------
 # Même version que le développement (php:8.3-fpm, Debian) pour éviter les
@@ -56,7 +57,17 @@ COPY --from=vendor /var/www/html/vendor/laravel/framework/src/Illuminate/Paginat
      ./vendor/laravel/framework/src/Illuminate/Pagination/resources/views
 RUN npm run build
 
-# --- 4. production : l'image livrée -----------------------------------------
+# --- 4. web : nginx avec les fichiers publics ---------------------------------
+# nginx sert directement les fichiers statiques (CSS, JS, images) et transmet
+# le reste à PHP-FPM. Il a donc besoin de public/, mais pas du code PHP.
+#   docker build --target web -t cocagne-web:local .
+FROM nginx:1.27-alpine AS web
+
+COPY docker/nginx/prod.conf /etc/nginx/conf.d/default.conf
+COPY --from=vendor /var/www/html/public /var/www/html/public
+COPY --from=front /app/public/build /var/www/html/public/build
+
+# --- 5. production : l'image livrée -----------------------------------------
 FROM base AS production
 
 # Outil cgi-fcgi pour le healthcheck (PHP-FPM ne parle pas HTTP).
@@ -67,6 +78,7 @@ RUN apt-get update \
 # Réglages PHP de production (erreurs non affichées), opcache, page /ping de FPM.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/php/opcache.ini "$PHP_INI_DIR/conf.d/zz-opcache.ini"
+COPY docker/php/production.ini "$PHP_INI_DIR/conf.d/zz-production.ini"
 COPY docker/php/fpm-ping.conf /usr/local/etc/php-fpm.d/zz-ping.conf
 
 # Code + vendor (étape 2) et front compilé (étape 3), appartenant à www-data.
