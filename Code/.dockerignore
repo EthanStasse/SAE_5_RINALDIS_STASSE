@@ -1,0 +1,66 @@
+# Fichiers exclus du contexte de construction de l'image de production.
+# Le contexte est le dossier Code/ : tout ce qui n'est pas exclu ici est envoyé
+# au moteur Docker et peut finir dans l'image par un « COPY . . ».
+#
+# Trois raisons d'exclure :
+#   1. sécurité : aucun secret ni donnée locale dans l'image (.env, logs, sessions) ;
+#   2. reproductibilité : vendor/, node_modules/ et public/build/ sont reconstruits
+#      DANS l'image, jamais copiés depuis le poste du développeur (Windows) ;
+#   3. taille et vitesse : contexte plus léger, cache Docker moins souvent invalidé.
+#
+# Sans effet sur l'environnement de développement : docker-compose.yml construit
+# avec le contexte docker/php, qui ne lit pas ce fichier.
+
+# --- Secrets et configuration locale ---------------------------------------
+# Le .env de production est fourni au conteneur par variables d'environnement.
+.env
+.env.*
+auth.json
+
+# --- Dépendances et fichiers compilés (reconstruits dans l'image) ----------
+vendor/
+node_modules/
+public/build/
+public/hot
+public/storage
+public/fonts-manifest.dev.json
+
+# Caches de Laravel générés sur le poste : packages.php liste les paquets de
+# développement, absents d'une installation « composer install --no-dev ».
+bootstrap/cache/*.php
+
+# --- Données d'exécution (storage/ sera un volume en production) -----------
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing/*
+storage/app/private/*
+storage/app/public/*
+storage/pail/
+storage/*.key
+database/*.sqlite
+
+# --- Outils de développement et de test ------------------------------------
+tests/
+phpunit.xml
+phpstan.neon
+.phpunit.cache/
+.phpunit.result.cache
+docker-compose*.yml
+demarrer.sh
+docker/init-laravel.sh
+
+# --- Gestion de version, éditeurs, documentation ----------------------------
+.git
+.gitignore
+.gitattributes
+.editorconfig
+.idea/
+.vscode/
+.cursor/
+.codex/
+*.md
+*.log
+Thumbs.db
+.DS_Store
