@@ -56,6 +56,19 @@ jobs:
           extensions: pdo_pgsql, intl, zip, bcmath
           coverage: none
 
+      # Cache de composer : les paquets téléchargés sont gardés d'une exécution
+      # à l'autre. La clé dépend de composer.lock : si le lock change, le cache
+      # est reconstruit ; sinon, composer install ne télécharge plus rien.
+      - name: Dossier du cache composer
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('Code/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
       - name: Dépendances
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -117,6 +130,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          # Cache npm intégré à setup-node, indexé sur package-lock.json.
+          cache: npm
+          cache-dependency-path: Code/package-lock.json
 
       # npm ci installe exactement les versions de package-lock.json
       # (installation reproductible) et échoue si le lock n'est pas à jour.
