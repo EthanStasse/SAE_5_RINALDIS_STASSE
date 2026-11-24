@@ -1,0 +1,101 @@
+# Déploiement de PRODUCTION / RECETTE de l'application Cocagne.
+#
+# Différences avec docker-compose.yml (développement) :
+#   - le code est DANS les images (pas de dossier monté depuis le poste) ;
+#   - pas de Mailpit, pas de service node, base de données sans port exposé ;
+#   - secrets dans .env.production (jamais versionné), pas dans ce fichier ;
+#   - HTTPS par Caddy, seul service joignable depuis l'extérieur (ports 80 et 443) ;
+#   - redémarrage automatique des services (restart: unless-stopped).
+#
+# Utilisation, depuis le dossier Code/ :
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Chemin d'une requête : navigateur → caddy (HTTPS) → web (nginx) → app (PHP-FPM) → db
+
+name: cocagne-prod
+
+x-application: &application
+  image: ${APP_IMAGE:-cocagne-app:local}
+  build:
+    context: .
+    target: production
+  env_file: .env.production
+  volumes:
+    - storage:/var/www/html/storage
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  # PHP-FPM : l'application Laravel (healthcheck défini dans l'image).
+  app:
+    <<: *application
+
+  # Tâches planifiées (surveillance des serres chaque minute, EF-C-09/10).
+  # Même image que app, autre commande.
+  scheduler:
+    <<: *application
+    command: php artisan schedule:work
+    healthcheck:
+      disable: true
+
+  # nginx : fichiers statiques, et transmission du PHP à app.
+  web:
+    image: ${WEB_IMAGE:-cocagne-web:local}
+    build:
+      context: .
+      target: web
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      # /up : route de santé de Laravel, vérifie toute la chaîne nginx → PHP-FPM → Laravel.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # Caddy : HTTPS (certificat automatique) devant nginx.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: .env.production
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL : AUCUN port publié, joignable seulement par app et scheduler.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?DB_DATABASE manquant dans .env.production}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME manquant dans .env.production}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD manquant dans .env.production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  # Fichiers produits par l'application (journaux, sessions, fichiers déposés) :
+  # conservés quand on remplace l'image par une nouvelle version.
+  storage:
+  pgdata:
+  # Certificats HTTPS de Caddy : conservés pour ne pas les redemander à chaque démarrage.
+  caddy_data:
+  caddy_config:
