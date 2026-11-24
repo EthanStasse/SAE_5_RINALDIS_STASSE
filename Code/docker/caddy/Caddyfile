@@ -1,0 +1,16 @@
+# Caddy : point d'entrée HTTPS de l'application.
+# - Avec un vrai nom de domaine (SITE_ADDRESS=recette.exemple.fr), Caddy obtient
+#   et renouvelle seul un certificat Let's Encrypt.
+# - Avec SITE_ADDRESS=localhost, il utilise un certificat de sa propre autorité
+#   locale (avertissement du navigateur, normal en test).
+# Les requêtes HTTP sont redirigées vers HTTPS automatiquement.
+{$SITE_ADDRESS:localhost} {
+    encode zstd gzip
+
+    # Ne pas annoncer le logiciel du serveur.
+    header -Server
+
+    # Caddy ajoute X-Forwarded-Proto et X-Forwarded-For : Laravel sait ainsi
+    # que la requête d'origine était en HTTPS (voir trustProxies).
+    reverse_proxy web:80
+}

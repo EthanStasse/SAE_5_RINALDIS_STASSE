@@ -20,6 +20,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // En production, l'application est derrière Caddy (HTTPS) puis nginx.
+        // On fait confiance aux en-têtes X-Forwarded-* envoyés par ces deux
+        // relais, qui ont des adresses du réseau privé de Docker : Laravel sait
+        // alors que la requête d'origine était en HTTPS (liens en https://, en-tête
+        // HSTS de EntetesSecurite) et connaît la vraie adresse IP du visiteur
+        // (limitation des tentatives de connexion, journal des connexions).
+        // Caddy remplace les X-Forwarded-* envoyés par le visiteur : impossible
+        // de se faire passer pour une autre adresse IP.
+        $middleware->trustProxies(at: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']);
+
         // ENF-SEC-01 : en-têtes de sécurité sur toutes les réponses.
         $middleware->append(EntetesSecurite::class);
 
