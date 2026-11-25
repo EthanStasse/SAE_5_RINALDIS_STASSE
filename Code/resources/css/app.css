@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Mode sombre piloté par la classe « dark » sur <html>, posée par public/js/theme.js
+   (choix de la personne avec le bouton lune, sinon réglage du système). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -11,4 +15,13 @@
 /* Éléments Alpine.js masqués tant qu'Alpine n'a pas démarré. */
 [x-cloak] {
     display: none !important;
+}
+
+/* Thème clair ou sombre : les champs, cases à cocher et barres de défilement
+   natives suivent le thème choisi. */
+:root {
+    color-scheme: light;
+}
+:root.dark {
+    color-scheme: dark;
 }

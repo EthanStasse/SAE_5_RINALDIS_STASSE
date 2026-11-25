@@ -1,10 +1,10 @@
 <x-layouts.app titre="Connexion">
-    <div class="mx-auto mt-12 max-w-sm rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+    <div class="mx-auto mt-12 max-w-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-sm">
         <h1 class="text-xl font-semibold">Connexion</h1>
-        <p class="mt-1 text-sm text-stone-600">Logiciel de gestion des Jardins de Cocagne</p>
+        <p class="mt-1 text-sm text-stone-600 dark:text-stone-400">Logiciel de gestion des Jardins de Cocagne</p>
 
         @if (session('status'))
-            <p class="mt-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{{ session('status') }}</p>
+            <p class="mt-4 rounded-md bg-green-50 dark:bg-green-950 px-3 py-2 text-sm text-green-800 dark:text-green-400">{{ session('status') }}</p>
         @endif
 
         <form method="POST" action="{{ route('login') }}" class="mt-6 space-y-4">
@@ -13,18 +13,18 @@
             <div>
                 <label for="email" class="block text-sm font-medium">Adresse e-mail</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                       class="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
+                       class="mt-1 w-full rounded-md border border-stone-300 dark:border-stone-600 dark:bg-stone-800 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
                 @error('email')
-                    <p class="mt-1 text-sm text-red-700" role="alert">{{ $message }}</p>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-400" role="alert">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
                 <label for="password" class="block text-sm font-medium">Mot de passe</label>
                 <input id="password" name="password" type="password" required autocomplete="current-password"
-                       class="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
+                       class="mt-1 w-full rounded-md border border-stone-300 dark:border-stone-600 dark:bg-stone-800 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
                 @error('password')
-                    <p class="mt-1 text-sm text-red-700" role="alert">{{ $message }}</p>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-400" role="alert">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -37,7 +37,7 @@
 
         {{-- EF-D-04 : lien vers la demande de réinitialisation. --}}
         <p class="mt-4 text-center text-sm">
-            <a href="{{ route('password.request') }}" class="text-green-800 underline hover:text-green-900">Mot de passe oublié ?</a>
+            <a href="{{ route('password.request') }}" class="text-green-800 dark:text-green-400 underline hover:text-green-900 dark:hover:text-green-300">Mot de passe oublié ?</a>
         </p>
     </div>
 </x-layouts.app>
