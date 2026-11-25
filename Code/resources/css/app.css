@@ -12,3 +12,10 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Mode sombre automatique : les classes dark: s'appliquent quand le système
+   (Windows, macOS, téléphone) est réglé en mode sombre. Les champs, cases à
+   cocher et barres de défilement natives suivent aussi ce réglage. */
+:root {
+    color-scheme: light dark;
+}
