@@ -11,32 +11,32 @@
     </div>
 
     @if ($confirmation)
-        <p class="rounded-md bg-green-50 px-4 py-2 text-sm text-green-800" role="status">{{ $confirmation }}</p>
+        <p class="rounded-md bg-green-50 dark:bg-green-950 px-4 py-2 text-sm text-green-800 dark:text-green-400" role="status">{{ $confirmation }}</p>
     @endif
 
     @error('suppression')
-        <p class="rounded-md bg-red-50 px-4 py-2 text-sm text-red-800" role="alert">{{ $message }}</p>
+        <p class="rounded-md bg-red-50 dark:bg-red-950 px-4 py-2 text-sm text-red-800 dark:text-red-300" role="alert">{{ $message }}</p>
     @enderror
 
     @if ($formulaireOuvert)
-        <form wire:submit="enregistrer" class="space-y-4 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+        <form wire:submit="enregistrer" class="space-y-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
             <h2 class="text-lg font-semibold">{{ $serreEnCours ? 'Modifier la serre' : 'Nouvelle serre' }}</h2>
 
             <div>
                 <label for="nom" class="block text-sm font-medium">Nom</label>
                 <input id="nom" type="text" wire:model="nom" maxlength="100" required
-                       class="mt-1 w-full max-w-md rounded-md border border-stone-300 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
+                       class="mt-1 w-full max-w-md rounded-md border border-stone-300 dark:border-stone-600 dark:bg-stone-800 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
                 @error('nom')
-                    <p class="mt-1 text-sm text-red-700" role="alert">{{ $message }}</p>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-400" role="alert">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
-                <label for="emplacement" class="block text-sm font-medium">Emplacement <span class="font-normal text-stone-500">(facultatif)</span></label>
+                <label for="emplacement" class="block text-sm font-medium">Emplacement <span class="font-normal text-stone-500 dark:text-stone-400">(facultatif)</span></label>
                 <input id="emplacement" type="text" wire:model="emplacement" maxlength="255" placeholder="Ex. : parcelle 2, près du hangar"
-                       class="mt-1 w-full max-w-md rounded-md border border-stone-300 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
+                       class="mt-1 w-full max-w-md rounded-md border border-stone-300 dark:border-stone-600 dark:bg-stone-800 px-3 py-2 focus:border-green-700 focus:outline-none focus:ring-1 focus:ring-green-700">
                 @error('emplacement')
-                    <p class="mt-1 text-sm text-red-700" role="alert">{{ $message }}</p>
+                    <p class="mt-1 text-sm text-red-700 dark:text-red-400" role="alert">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -44,7 +44,7 @@
                 <button type="submit" class="rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-white hover:bg-green-900">
                     Enregistrer
                 </button>
-                <button type="button" wire:click="annuler" class="rounded-md border border-stone-300 px-4 py-2 text-sm hover:bg-stone-100">
+                <button type="button" wire:click="annuler" class="rounded-md border border-stone-300 dark:border-stone-600 dark:bg-stone-800 px-4 py-2 text-sm hover:bg-stone-100 dark:hover:bg-stone-800">
                     Annuler
                 </button>
             </div>
@@ -52,11 +52,11 @@
     @endif
 
     @if ($serres->isEmpty())
-        <p class="text-stone-600">Aucune serre n'est déclarée pour ce Jardin.</p>
+        <p class="text-stone-600 dark:text-stone-400">Aucune serre n'est déclarée pour ce Jardin.</p>
     @else
-        <div class="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+        <div class="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900">
             <table class="w-full text-left text-sm">
-                <thead class="border-b border-stone-200 bg-stone-50 text-stone-600">
+                <thead class="border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-600 dark:text-stone-400">
                     <tr>
                         <th scope="col" class="px-4 py-2 font-medium">Nom</th>
                         <th scope="col" class="px-4 py-2 font-medium">Emplacement</th>
@@ -66,28 +66,28 @@
                         @endif
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-stone-100">
+                <tbody class="divide-y divide-stone-100 dark:divide-stone-800">
                     @foreach ($serres as $serre)
                         <tr wire:key="serre-{{ $serre->id }}">
                             <td class="px-4 py-2 font-medium">
-                                <a href="{{ route('serres.show', $serre) }}" class="text-green-800 underline hover:text-green-950">{{ $serre->nom }}</a>
+                                <a href="{{ route('serres.show', $serre) }}" class="text-green-800 dark:text-green-400 underline hover:text-green-950 dark:hover:text-green-300">{{ $serre->nom }}</a>
                                 @if ($serre->alertes_ouvertes_count > 0)
                                     <span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">{{ $serre->alertes_ouvertes_count }} alerte(s)</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-2 text-stone-600">{{ $serre->emplacement ?? '—' }}</td>
+                            <td class="px-4 py-2 text-stone-600 dark:text-stone-400">{{ $serre->emplacement ?? '—' }}</td>
                             <td class="px-4 py-2">{{ $serre->boitiers_count }}</td>
                             @if ($peutGerer || $peutReglerSeuils)
                                 <td class="space-x-3 px-4 py-2 text-right whitespace-nowrap">
                                     @if ($peutReglerSeuils)
-                                        <a href="{{ route('serres.seuils', $serre) }}" class="text-green-800 underline hover:text-green-950">Seuils</a>
+                                        <a href="{{ route('serres.seuils', $serre) }}" class="text-green-800 dark:text-green-400 underline hover:text-green-950 dark:hover:text-green-300">Seuils</a>
                                     @endif
                                     @if ($peutGerer)
-                                        <a href="{{ route('serres.boitiers', $serre) }}" class="text-green-800 underline hover:text-green-950">Boîtiers</a>
-                                        <button type="button" wire:click="modifier({{ $serre->id }})" class="text-green-800 underline hover:text-green-950">Modifier</button>
+                                        <a href="{{ route('serres.boitiers', $serre) }}" class="text-green-800 dark:text-green-400 underline hover:text-green-950 dark:hover:text-green-300">Boîtiers</a>
+                                        <button type="button" wire:click="modifier({{ $serre->id }})" class="text-green-800 dark:text-green-400 underline hover:text-green-950 dark:hover:text-green-300">Modifier</button>
                                         <button type="button" wire:click="supprimer({{ $serre->id }})"
                                                 wire:confirm="Supprimer la serre « {{ $serre->nom }} » ?"
-                                                class="text-red-700 underline hover:text-red-900">Supprimer</button>
+                                                class="text-red-700 dark:text-red-400 underline hover:text-red-900 dark:hover:text-red-200">Supprimer</button>
                                     @endif
                                 </td>
                             @endif
