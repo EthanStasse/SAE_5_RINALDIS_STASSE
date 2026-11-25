@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Mode sombre piloté par la classe « dark » sur <html>, posée par public/js/theme.js
+   (choix de la personne avec le bouton lune, sinon réglage du système). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -13,9 +17,11 @@
     display: none !important;
 }
 
-/* Mode sombre automatique : les classes dark: s'appliquent quand le système
-   (Windows, macOS, téléphone) est réglé en mode sombre. Les champs, cases à
-   cocher et barres de défilement natives suivent aussi ce réglage. */
+/* Thème clair ou sombre : les champs, cases à cocher et barres de défilement
+   natives suivent le thème choisi. */
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
+}
+:root.dark {
+    color-scheme: dark;
 }
