@@ -15,7 +15,8 @@ if ! docker compose run --rm --no-deps node sh -lc '
   test -f node_modules/.package-lock.json &&
   test -f public/build/manifest.json &&
   ! test package.json -nt node_modules/.package-lock.json &&
-  ! test package-lock.json -nt node_modules/.package-lock.json
+  ! test package-lock.json -nt node_modules/.package-lock.json &&
+  test -z "$(find resources vite.config.js -newer public/build/manifest.json -print -quit)"
 '; then
   echo "==> Installation des dépendances front-end et compilation des assets"
   MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps --user root node chown "$HOST_UID:$HOST_GID" /var/www/html/node_modules
